@@ -1,0 +1,500 @@
+  '«Чистое небо» рассказывает события до «Тени Чернобыля». «Зов Припяти» происходит после завершения истории первой игры.',
+  'Для первого знакомства можно играть в порядке выхода, а для анализа событий важно понимать внутриигровую последовательность.'],
+ ['knowledge','Операция «Фарватер»: расследование','ЗП','Отправная точка сюжета «Зова Припяти».',
+  'После событий первой игры государственная операция по исследованию пути к центру Зоны заканчивается неудачей: несколько вертолётов терпят крушение.',
+  'Майор Дегтярёв отправляется выяснять причины происшествия. Подробности расследования содержат сюжетные спойлеры и открываются в соответствующих досье.'],
+ ['knowledge','Сюжетный мир и реальная зона отчуждения','ТЧ, ЧН, ЗП','Разделение вымысла и реальной географии.',
+  'Игровая Зона вдохновлена реальными местами вокруг ЧАЭС, но аномалии, артефакты, мутанты и связанные с ними события относятся к художественному миру.',
+  'Карты и легенды ПДА не следует использовать как инструкции для посещения реальной зоны отчуждения.'],
+ ['knowledge','Как оценивать подтверждённость записи','ТЧ, ЧН, ЗП','Источник важнее уверенного тона.',
+  'Для точных чисел, редких предметов и спорных событий ищите официальные описания или внутриигровые подтверждения. Обобщение может быть полезным, но оно не равно цитате из первоисточника.',
+  'Авторские советы в нашем ПДА специально помечены и не выдают себя за канонические документы.'],
+ ['knowledge','Личный исследовательский дневник','ТЧ, ЧН, ЗП','Как хранить собственные открытия.',
+  'Запись полезно делить на три части: что известно из справочника, что наблюдалось в игре и что пока остаётся гипотезой.',
+  'Такой подход помогает сохранять интригу и сравнивать собственные прохождения без путаницы с выдуманными фактами.'],
+ ['knowledge','Источники, модификации и версии','ТЧ, ЧН, ЗП','Почему цифры из разных сборок могут расходиться.',
+  'Оригинальная трилогия, переиздания и модификации могут различаться. Данные, собранные для одной версии, не должны без проверки приписываться всем остальным.',
+  'В этом справочнике основой остаётся оригинальная трилогия; если численные параметры не подтверждены, они не добавляются.'],
+ ['knowledge','Торговля и экономика сталкера','ТЧ, ЧН, ЗП','Роль добычи, торговцев и расходов.',
+  'Снаряжение, боеприпасы, ремонт и продажа находок формируют экономическую часть путешествия. Разные игры делают акцент на разных системах.',
+  'Для личного учета выделяйте предметы на продажу, для задач и для использования. ПДА не получает реальные цены из запущенной игры.'],
+ ['knowledge','Спойлеры в энциклопедии','ТЧ, ЧН, ЗП','Порядок изучения сюжетных документов.',
+  'Сначала открывайте нейтральные описания мест, врагов и предметов. Биографии ключевых героев и материалы о тайнах центра могут раскрывать важные повороты.',
+  'Для первого прохождения удобно составлять список вопросов и возвращаться к подробным досье после соответствующих заданий.'],
+ ['knowledge','Проверка маршрута между играми','ТЧ, ЧН, ЗП','Одинаковые названия локаций — не одинаковые переходы.',
+  'Доступные регионы, условия перехода и сюжетные блокировки зависят от игры. Объединённая карта ПДА служит ориентиром, а не точным навигатором.',
+  'Выбирайте ТЧ, ЧН или ЗП перед построением цепочки мест и сверяйте свои задачи с внутриигровой картой.'],
+ ['knowledge','Офлайн-терминал: возможности и пределы','ТЧ, ЧН, ЗП','Что ПДА действительно умеет.',
+  'Энциклопедия, личные заметки, метки и сохранения работают локально в браузере. Данные не синхронизируются автоматически с сохранением S.T.A.L.K.E.R.',
+  'Сканер, радиосеть и уведомления о выбросах — атмосферные имитации. Для переноса записей между устройствами используйте экспорт и восстановление резервной копии.']
+ ];
+ const existing=new Set(DB.map(x=>x.name+'|'+x.cat));
+ const sourcePages={ТЧ:'https://cs.stalker-game.com/mainlink/en/?page=world',ЧН:'https://cs.stalker-game.com/en/?page=world',ЗП:'https://cop.stalker-game.com/product.php?page=game'};
+ let added=0;
+ for(const [cat,name,games,short,p1,p2] of briefs){
+  if(existing.has(name+'|'+cat))continue;
+  const id='V43-'+String(++added).padStart(3,'0');
+  const source=(games==='ЧН'||games==='ЗП')?sourcePages[games]:null;
+  const body=[p1,p2,'ПРИМЕЧАНИЕ ПДА: это аналитическая справочная заметка. Игровые факты следует сверять с досье и конкретной частью трилогии; рекомендации по исследованию являются авторскими.'];
+  DB.push({id,cat,name:'▤ '+name,kind:'Расширенный справочник / авторская аналитика',short,detail:body.join('\n\n'),body,games,tags:['Расширенный справочник','Новые материалы'],sources:source?[{url:source,label:'Официальный обзор соответствующей игры'}]:[],spoiler:name.includes('Фарватер')});
+ }
+ document.querySelectorAll('#tiles .tile[data-open]').forEach(tile=>{
+  const key=tile.dataset.open;if(key==='map')return;
+  const counter=tile.querySelector('small');if(counter)counter.textContent=`${DB.filter(x=>x.cat===key).length} ЗАПИСЕЙ`;
+ });
+ const mk=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!==undefined)n.textContent=txt;return n};
+ function addControls(){
+  const cat=(typeof current==='string'?current:'home');
+  const toolbar=document.getElementById('section-toolbar');if(!toolbar)return;
+  toolbar.querySelector('.v43-filter')?.remove();
+  if(!['factions','characters','locations','weapons','suits','artifacts','mutants','anomalies','gear','knowledge'].includes(cat))return;
+  const count=DB.filter(x=>x.cat===cat&&x.tags?.includes('Расширенный справочник')).length;
+  const b=mk('button','v43-filter',`＋ НОВЫЕ СПРАВКИ · ${count}`);b.type='button';b.title='Показать новые подробные материалы этого раздела';
+  b.onclick=()=>{if(typeof q!=='undefined'&&typeof renderList==='function'){
+   const active=q==='Расширенный справочник';q=active?'':'Расширенный справочник';
+   const search=document.getElementById('section-search');if(search)search.value=q;
+   renderList();b.textContent=active?`＋ НОВЫЕ СПРАВКИ · ${count}`:'× ПОКАЗАНЫ НОВЫЕ СПРАВКИ';
+  }};
+  toolbar.append(b);
+ }
+ if(typeof openSection==='function'){
+  const original=openSection;openSection=function(...args){const ret=original.apply(this,args);addControls();return ret};
+ }
+ document.addEventListener('DOMContentLoaded',()=>{const f=document.getElementById('total-foot');if(f)f.textContent=`${DB.length} МАТЕРИАЛОВ / v4.9`});
+ const foot=document.getElementById('total-foot');if(foot)foot.textContent=`${DB.length} МАТЕРИАЛОВ / v4.9`;
+ if(window.PDA_ZONE_V4)window.PDA_ZONE_V4.version='4.3';
+ document.title='АРХИУМ v6.10 — Энциклопедия Зоны';
+ window.PDA_ZONE_V43={version:'4.5',added,briefs:briefs.length,total:DB.length};
+})();
+
+</script><style>
+/* АРХИУМ v4.4 — responsive, single-file deep encyclopedia. */
+.v44-overlay{position:fixed;inset:0;z-index:100200;background:#020604ee;color:#d9e7cf;display:flex;align-items:center;justify-content:center;padding:14px;font:14px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif}
+.v44-overlay[hidden]{display:none!important}
+.v44-overlay *{box-sizing:border-box}
+.v44-panel{width:min(1250px,100%);height:min(94dvh,930px);display:flex;flex-direction:column;min-height:0;overflow:hidden;border:1px solid #7e995a;border-radius:12px;background:linear-gradient(145deg,#18291c,#08130d 70%);box-shadow:0 20px 90px #000;padding:clamp(12px,2vw,24px);gap:12px}
+.v44-panel button,.v44-panel input,.v44-panel select,.v44-panel textarea{font:inherit;color:#e9f4dc;background:#11231a;border:1px solid #5b7755;border-radius:5px;padding:9px 12px;min-width:0}
+.v44-panel button{cursor:pointer}.v44-panel button:hover,.v44-panel button:focus-visible{background:#34533a;border-color:#c1e69c}.v44-panel a{color:#a4eaa1;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.v44-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.v44-head h2{color:#e4efaa;font-size:clamp(18px,3vw,25px);line-height:1.15;letter-spacing:.08em;margin:2px 0}.v44-head small,.v44-eyebrow{color:#8ecf84;font-size:11px;font-weight:800;letter-spacing:.1em}.v44-head>button{flex-shrink:0}
+.v44-intro{font-size:12px;color:#aabca7;line-height:1.55}
+.v44-tabs{display:flex;gap:7px;flex-wrap:wrap}.v44-tabs button{font-weight:800;letter-spacing:.025em;display:flex;gap:8px;align-items:center}.v44-tabs small{color:#b5caab}.v44-tabs button[aria-pressed=true]{background:#406439;border-color:#c1dc8b;color:#fff}
+.v44-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.v44-tools input{flex:1;min-width:200px}.v44-tools select{min-width:116px}.v44-tools>span{font-weight:800;color:#d6efb4;white-space:nowrap}
+.v44-layout{display:grid;grid-template-columns:minmax(190px,285px) minmax(0,1fr);gap:11px;min-height:0;flex:1;overflow:hidden}
+.v44-list{min-height:0;overflow:auto;border:1px solid #3f6245;border-radius:7px;background:#07130d;padding:8px;display:flex;flex-direction:column;align-items:stretch;gap:5px;scrollbar-color:#547e4b transparent}
+.v44-item{display:grid;gap:3px;text-align:left;width:100%;padding:10px 9px!important;overflow-wrap:anywhere}.v44-item strong{font-size:13px}.v44-item small{font-size:10px;color:#a4b69c}.v44-item.selected{background:#46633a!important;border-color:#e2dc95;color:#fff}
+.v44-detail{overflow:auto;min-height:0;min-width:0;border:1px solid #3f6245;border-radius:7px;padding:clamp(10px,2vw,20px);background:#091710;scrollbar-color:#53784e transparent}
+.v44-dossier-top h2{font-size:clamp(21px,3vw,31px);line-height:1.2;color:#e2f2a8;margin:6px 0 8px}.v44-dossier-top{margin-bottom:14px}.v44-chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.v44-chips span{font-size:10px;color:#cde1af;border:1px solid #54764b;padding:4px 7px;border-radius:999px}
+.v44-card{border:1px solid #3f5940;background:#0f2117;border-radius:8px;padding:14px;margin:12px 0}.v44-card h3{color:#d9ee9b;font-size:15px;margin:0 0 9px}.v44-card h4{color:#d7d6a1;margin:10px 0 5px;font-size:13px}.v44-card p{font-size:13px;line-height:1.68;margin:7px 0 12px;white-space:pre-wrap;overflow-wrap:anywhere}.v44-fact{border-left:2px solid #789d68;padding:3px 0 3px 12px;margin:11px 0}.v44-fact p{margin-bottom:6px}
+.v44-info{border-left:3px solid #c8ad62;padding:10px 12px;background:#3c361a50;font-size:12px;color:#e7d5ad;line-height:1.6}.v44-muted{font-size:12px!important;color:#a5b7a7!important}
+.v44-link{display:inline-flex;align-items:center;line-height:1.3;font-size:12px!important;padding:7px 10px!important;text-align:left;overflow-wrap:anywhere}.v44-links{display:flex;flex-wrap:wrap;gap:7px}.v44-relation{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:8px 0;padding-bottom:8px;border-bottom:1px solid #355341}.v44-relation>b{color:#d9c176}.v44-relation small{color:#aabbaa}
+.v44-table{display:grid;gap:0}.v44-table-head,.v44-table-row{display:grid;grid-template-columns:50px minmax(100px,.7fr) minmax(150px,1.4fr);gap:10px;align-items:start;border-bottom:1px solid #3b5542;padding:8px 0}.v44-table-head{font-size:10px;color:#bbd6a8;font-weight:900}.v44-table-row{font-size:12px;overflow-wrap:anywhere}.v44-table-row>b{color:#d9d18c}
+.v44-compare-controls{display:flex;gap:7px;flex-wrap:wrap}.v44-compare-controls select{flex:1;min-width:170px}.v44-compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.v44-compare-grid>div{border:1px solid #3f694b;padding:10px;border-radius:5px}.v44-compare-grid h4{margin-top:0}
+.v44-card textarea{display:block;width:100%;min-height:90px;resize:vertical;margin:9px 0}.v44-card #v44-note-status{color:#bceba8;font-size:12px;margin-left:8px}
+.v44-primary,.v44-open-dossier,.v44-launch{background:linear-gradient(120deg,#314b2b,#17291a)!important;border-color:#a1bc6b!important;color:#e0f2ac!important;font-weight:900!important;letter-spacing:.04em}
+.v44-open-dossier{width:100%;margin:18px 0 10px;min-height:44px;padding:10px;line-height:1.4;white-space:normal;text-align:center}
+.home .actionbar .v44-launch{grid-column:1 / -1;display:flex;align-items:center;justify-content:center;gap:10px;min-height:52px;white-space:normal;overflow-wrap:anywhere;padding:11px}.v44-launch small{font-weight:600;color:#c3d49c}
+.v44-empty{padding:40px 10px;text-align:center;color:#adc2a4}
+@media(max-width:710px){
+ .v44-overlay{padding:0}
+ .v44-panel{width:100%;height:100dvh;max-height:none;border:0;border-radius:0;padding:10px;gap:9px}
+ .v44-head h2{font-size:17px}.v44-head>button{font-size:11px;padding:7px}.v44-intro{font-size:11px;max-height:38px;overflow:auto}
+ .v44-tabs{gap:5px}.v44-tabs button{flex:1;justify-content:center;font-size:10px;padding:8px 4px;gap:4px}.v44-tabs small{font-size:9px}
+ .v44-tools{gap:6px}.v44-tools input{min-width:0;flex:1 1 100%;font-size:12px}.v44-tools select{flex:1;font-size:11px}.v44-tools>span{font-size:12px}
+ .v44-layout{display:flex;flex-direction:column;overflow:hidden;gap:7px}
+ .v44-list{flex:0 0 auto;max-height:155px;min-height:95px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:5px;overflow:auto}
+ .v44-item{font-size:11px;padding:7px!important}.v44-item strong{font-size:11px}.v44-item small{font-size:9px}
+ .v44-detail{flex:1;min-height:0;padding:11px}
+ .v44-card{padding:11px;margin:9px 0}.v44-card p{font-size:12px}.v44-table-head,.v44-table-row{grid-template-columns:34px minmax(70px,.75fr) minmax(100px,1.25fr);gap:5px;font-size:11px}
+ .v44-compare-grid{grid-template-columns:1fr}.v44-head{align-items:flex-start}
+ .home .actionbar .v44-launch{grid-column:1 / -1!important;min-height:56px!important;font-size:13px!important}
+}
+@media(max-height:620px) and (max-width:710px){.v44-intro{display:none}.v44-list{max-height:92px;min-height:70px}}
+
+</style><script>
+/* АРХИУМ 4.4 — offline deep atlases: 15 mutants, 37 artifacts, 74 locations. */
+(()=>{
+ 'use strict';
+ if(typeof DB==='undefined'||!Array.isArray(DB))return;
+ const KEY='pda_v44_atlas_notes';
+ const types={mutants:['МУТАНТЫ','☣'],artifacts:['АРТЕФАКТЫ','✧'],locations:['ЛОКАЦИИ','⌖']};
+ const games=['ТЧ','ЧН','ЗП'];
+ const nrm=s=>String(s||'').toLocaleLowerCase('ru').replace(/ё/g,'е').trim();
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const recs=cat=>DB.filter(x=>x.cat===cat&&!(x.tags||[]).includes('Расширенный справочник'));
+ const matches=(x,g)=>g==='all'||!x.games||x.games.split(/[,;]+/).some(t=>t.trim()===g);
+ const itemText=x=>nrm([x.name,x.short,x.detail,...(x.body||[]),...(x.tags||[]),...(x.archive||[]).map(a=>a.text||'')].join(' '));
+ const mutantAdvice={
+  'Псевдособака':['В архиве отмечены скорость преследования и опасность нападения группы. Важно оценивать не только отдельную цель, но и пространство вокруг.','Старайтесь распознавать направление приближения и наличие укрытий; поведение и численность могут зависеть от игры.'],
+  'Кровосос':['Маскировка и внезапное сближение делают этого противника опасным при плохом обзоре.','При исследовании ограниченных пространств полезно обращать внимание на признаки присутствия, а не только на видимую цель.'],
+  'Снорк':['Быстрое сокращение дистанции и необычная манера движения требуют внимания к направлению атаки.','Отдельно проверяйте условия встречи в конкретной части игры и возможности для манёвра.'],
+  'Бюрер':['Досье связано с необычными воздействиями и ограниченными пространствами.','В «Зове Припяти» бюрер выделен официальным описанием среди новых противников; не переносите параметры на другие версии без проверки.'],
+  'Контролёр':['Опасность контролёра связана с пси-воздействием, поэтому её нельзя оценить только через физическую атаку.','Связывайте досье с изучением пси-угроз и особенностей конкретного района.'],
+  'Химера':['Высокая подвижность и резкие атаки требуют продумывать движение и пространство для уклонения.','Химера отдельно упоминается среди новых противников «Зова Припяти» в официальном описании игры.'],
+  'Полтергейст':['Этот тип угрозы лучше изучать вместе с характером необычных воздействий в помещении.','Не следует считать невидимый источник опасности обычным противником ближнего боя.'],
+  'Слепой пёс':['При оценке угрозы важны количество существ, звуковые сигналы и местность.','Сопоставляйте отдельную встречу с возможным присутствием других животных.'],
+  'Кабан':['Крупное животное-мутант представляет особую опасность при внезапном сближении.','В полевом журнале отмечайте места встреч и особенности поведения именно в своём прохождении.'],
+  'Плоть':['Этот мутант связан с животным миром Зоны; оценка опасности зависит от поведения и ситуации.','Сравнивайте его с другими существами категории, не предполагая одинаковую агрессивность.'],
+  'Псевдогигант':['Большой размер и необычная живучесть делают встречу серьёзным испытанием.','Для изучения полезны сведения о месте, доступном укрытии и особенностях игровой версии.'],
+  'Пси-собака':['Этот противник связан с пси-эффектами и требует отличать прямую угрозу от необычных проявлений.','Сверяйте описание конкретной части игры и не переносите поведение на обычных собак.'],
+  'Зомбированный сталкер':['Это отдельная категория угрозы, связанная с человеком и особым воздействием Зоны.','Для понимания происхождения полезно изучать пси-угрозы и соответствующие сюжетные районы.'],
+  'Тушкан':['Небольшие существа могут представлять опасность численностью и внезапным появлением.','При исследовании подземных участков полезно сохранять обзор и маршрут отхода.'],
+  'Пирогейст':['Запись связана с необычными огненными проявлениями, которые нельзя оценивать как обычную атаку животного.','Сравнивайте её с другими лабораторными угрозами и термическими аномалиями.']
+ };
+ const placeAdvice={
+  'Кордон':'Один из отправных регионов ТЧ; изучайте деревню новичков, торговые точки и переходы отдельно от варианта ЧН.',
+  'Свалка':'Промежуточный район для нескольких маршрутов. Сопоставляйте лагеря, опасные участки и направление к соседним локациям.',
+  'Припять':'В ТЧ и ЗП город представлен в разных сюжетных условиях; точные маршруты и доступные части локации не совпадают.',
+  'Болота':'Ключевой регион начала «Чистого неба» и работы исследовательской группировки. Ориентиры и проходы следует отмечать по ЧН.',
+  'Агропром':'Различайте наземный район и подземные участки. Локация важна для разных сюжетных задач.',
+  'Тёмная долина':'Изучайте объекты и опасные проходы вместе с досье соответствующей части; не смешивайте варианты ТЧ и ЧН.',
+  'Янтарь':'Научный узел и район особых угроз; полезна связка с персонажами исследователей и пси-защитой.',
+  'Рыжий лес':'Особенно важен в истории «Чистого неба». Отдельно сверяйте путь продвижения и местные угрозы.',
+  'Лиманск':'Сюжетный район приквела. Для первого прохождения рекомендуется избегать спойлерных подробностей маршрута.',
+  'Затон':'В ЗП удобно разбивать исследование района на самостоятельные экспедиции к объектам и аномальным полям.',
+  'Юпитер':'Промышленный район ЗП; различайте заводские объекты, станцию Янов и соседние области.',
+  'Янов':'Важный ориентир Юпитера в «Зове Припяти»; не путайте станцию с целым регионом.',
+  'ЧАЭС':'Центральный сюжетный объект Зоны. Сведения о внутренних участках и финальных событиях могут содержать спойлеры.',
+  'Лаборатория X-18':'Один из исследовательских объектов. Сверяйте номер, игру и путь входа: X-лаборатории имеют разные роли.',
+  'Лаборатория X-16':'Отдельный объект, связанный с историей исследований; не объединяйте его с X-18 или X-8.',
+  'Лаборатория X-8':'Лаборатория из контекста ЗП. Для полной картины сопоставляйте её с сюжетом Припяти.',
+  'Подземный переход Припяти':'Особый маршрут ЗП; доступ и события следует проверять по текущим задачам, а не общей карте.'
+ };
+ let notes={};try{const x=JSON.parse(localStorage.getItem(KEY)||'{}');if(x&&typeof x==='object'&&!Array.isArray(x))notes=x}catch{}
+ let overlay=null,active='mutants',game='all',query='',selected=null,previousFocus=null;
+ const $=id=>document.getElementById(id);
+ function rowLink(x,label){return `<button type="button" class="v44-link" data-v44-link="${esc(x.id)}">${esc(label||x.name)}</button>`}
+ function originalSources(x){
+  const out=[...(x.sources||[])];for(const f of x.archive||[])out.push(...(f.sources||[]));
+  const unique=new Map();for(const s of out){const url=typeof s==='string'?s:s?.url;if(typeof url==='string'&&/^https:\/\//.test(url)&&!unique.has(url))unique.set(url,{url,label:typeof s==='object'&&s?.label?s.label:'Справочный источник'})}
+  return [...unique.values()].slice(0,5);
+ }
+ function anomalyRelations(x){
+  const out=[];
+  for(const a of DB.filter(z=>z.cat==='anomalies'&&z.anomalyByGame))for(const g of games){const d=a.anomalyByGame[g];if(!d)continue;
+   const names=x.cat==='artifacts'?(d.artifacts||[]):(d.locations||[]);
+   const hit=names.some(n=>x.cat==='artifacts'?nrm(n)===nrm(x.name):nrm(n)===nrm(x.name)||nrm(n).startsWith(nrm(x.name)+':')||nrm(n).startsWith(nrm(x.name)+' '));
+   if(hit)out.push({a,g,locations:d.locations||[],artifacts:d.artifacts||[]});
+  }
+  return out;
+ }
+ function related(x){
+  const base=itemText(x);const name=nrm(x.name);const tags=new Set((x.tags||[]).map(nrm));
+  return DB.filter(y=>y.id!==x.id&&!String(y.id).startsWith('V43-')&&!String(y.id).startsWith('V41-')).map(y=>{
+   let score=0;const yname=nrm(y.name);if(yname.length>4&&base.includes(yname))score+=5;
+   if(name.length>4&&itemText(y).includes(name))score+=7;
+   if(x.cat===y.cat)score+=.5;
+   for(const t of y.tags||[])if(tags.has(nrm(t)))score+=1;
+   return {y,score};
+  }).filter(v=>v.score>=3).sort((a,b)=>b.score-a.score).slice(0,12).map(v=>v.y);
+ }
+ function saveNotes(){try{localStorage.setItem(KEY,JSON.stringify(notes));return true}catch{alert('Не удалось сохранить заметку. Проверьте настройки браузера.');return false}}
+ function open(cat='mutants',id=null){
+  previousFocus=document.activeElement;active=types[cat]?cat:'mutants';query='';game='all';selected=id;
+  if(!overlay){overlay=document.createElement('div');overlay.id='v44-overlay';overlay.className='v44-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Большой атлас Зоны');overlay.innerHTML=`<div class="v44-panel"><header class="v44-head"><div><small>☢ АРХИУМ / 6.1 · OFFLINE</small><h2>БОЛЬШИЕ ЭНЦИКЛОПЕДИИ</h2></div><button id="v44-close" type="button">✕ ЗАКРЫТЬ</button></header><div class="v44-intro">Интерактивный архив мутантов, артефактов и локаций трилогии. Связи строятся по уже сохранённым досье, без вымышленных координат и характеристик.</div><nav class="v44-tabs" aria-label="Выбор энциклопедии"></nav><div class="v44-tools"><input id="v44-search" type="search" placeholder="Поиск по названиям и описаниям…" aria-label="Поиск по атласу"><select id="v44-game" aria-label="Фильтр по игре"><option value="all">ВСЕ ИГРЫ</option><option value="ТЧ">ТЧ</option><option value="ЧН">ЧН</option><option value="ЗП">ЗП</option></select><span id="v44-count"></span></div><div class="v44-layout"><div class="v44-list" id="v44-list" role="list"></div><article class="v44-detail" id="v44-detail" tabindex="-1"></article></div></div>`;document.body.append(overlay);overlay.querySelector('#v44-close').onclick=close;
+   overlay.addEventListener('click',e=>{if(e.target===overlay)close()});overlay.querySelector('.v44-tabs').onclick=e=>{const b=e.target.closest('[data-v44-cat]');if(b){active=b.dataset.v44Cat;selected=null;query='';$('v44-search').value='';render()}};
+   $('v44-search').oninput=e=>{query=nrm(e.target.value);renderList()};$('v44-game').onchange=e=>{game=e.target.value;renderList()};
+   $('v44-list').onclick=e=>{const b=e.target.closest('[data-v44-id]');if(b){selected=b.dataset.v44Id;renderList();renderDetail();$('v44-detail').scrollIntoView({block:'nearest',behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})}};
+   $('v44-detail').onclick=e=>{const b=e.target.closest('[data-v44-link]');if(b){const x=DB.find(z=>String(z.id)===b.dataset.v44Link);if(!x)return;if(types[x.cat]){active=x.cat;selected=x.id;query='';game='all';$('v44-search').value='';$('v44-game').value='all';render()}else jumpToMain(x)}};
+  }
+  overlay.hidden=false;$('v44-game').value='all';$('v44-search').value='';render();overlay.querySelector('#v44-close').focus();
+ }
+ function close(){if(overlay)overlay.hidden=true;previousFocus?.focus?.()}
+ document.addEventListener('keydown',e=>{if(!overlay||overlay.hidden)return;if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close()}if(e.key==='Tab'){const focusables=[...overlay.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled)')].filter(x=>x.getClientRects().length);if(!focusables.length)return;if(e.shiftKey&&document.activeElement===focusables[0]){e.preventDefault();focusables.at(-1).focus()}else if(!e.shiftKey&&document.activeElement===focusables.at(-1)){e.preventDefault();focusables[0].focus()}}},true);
+ function render(){overlay.querySelector('.v44-tabs').innerHTML=Object.entries(types).map(([k,[label,icon]])=>`<button type="button" data-v44-cat="${k}" aria-pressed="${active===k}">${icon} ${label} <small>${recs(k).length}</small></button>`).join('');renderList()}
+ function renderList(){
+  const hits=recs(active).filter(x=>matches(x,game)&&(!query||itemText(x).includes(query))).sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+  if(!hits.some(x=>x.id===selected))selected=hits[0]?.id||null;
+  $('v44-count').textContent=`${hits.length} / ${recs(active).length}`;
+  $('v44-list').innerHTML=hits.map(x=>`<button type="button" role="listitem" data-v44-id="${esc(x.id)}" class="v44-item${x.id===selected?' selected':''}"><strong>${esc(x.name)}</strong><small>${esc(x.games||'игры не уточнены')}</small></button>`).join('')||'<p class="v44-muted">Нет результатов. Попробуйте другую формулировку.</p>';
+  renderDetail();
+ }
+ function summary(x){return `<section class="v44-card"><h3>АРХИВНОЕ ОПИСАНИЕ</h3><p>${esc(x.short)}</p>${x.detail&&x.detail!==x.short?`<p>${esc(x.detail)}</p>`:''}${x.artifactOccurrence?`<p>${esc(x.artifactOccurrence)}</p>`:''}</section>`}
+ function factCards(x){const facts=(x.archive||[]).slice(0,8);return facts.length?`<section class="v44-card"><h3>УТОЧНЕНИЯ И ДОПОЛНИТЕЛЬНЫЕ ФАКТЫ</h3>${facts.map(f=>`<div class="v44-fact"><h4>${esc(f.title||'Архивная заметка')}</h4><p>${esc(f.text||'')}</p></div>`).join('')}</section>`:''}
+ function mutantSection(x){
+  const a=mutantAdvice[x.name]||['Изучайте архивные признаки, тип угрозы и условия встречи.','Сверяйте наблюдения с выбранной частью игры.'];
+  return `<section class="v44-card"><h3>ПОЛЕВОЙ РАЗБОР</h3><p>${esc(a[0])}</p><p>${esc(a[1])}</p><div class="v44-info">Игровые появления и поведение могут зависеть от версии и сценария. Это авторский разбор, а не считывание данных из игры.</div></section>`;
+ }
+ function artifactSection(x){const rel=anomalyRelations(x);
+  return `<section class="v44-card"><h3>АНОМАЛИИ И ВОЗМОЖНЫЕ МЕСТА ПОИСКА</h3><p class="v44-muted">Связи записаны по конкретным играм. Появление предмета не гарантировано.</p>${rel.length?`<div class="v44-table"><div class="v44-table-head"><span>ИГРА</span><span>АНОМАЛИЯ</span><span>УЧАСТКИ ИЗ АРХИВА</span></div>${rel.map(r=>`<div class="v44-table-row"><b>${r.g}</b><div>${rowLink(r.a)}</div><span>${esc(r.locations.join('; ')||'место не уточнено')}</span></div>`).join('')}</div>`:'<div class="v44-info">Для этого артефакта нет точной связи с аномальным полем в текущей локальной базе. Не будем придумывать её.</div>'}</section>`;
+ }
+ function locationSection(x){const rel=anomalyRelations(x),advice=placeAdvice[x.name];return `<section class="v44-card"><h3>КАРТОГРАФИЧЕСКАЯ СВОДКА</h3>${advice?`<p>${esc(advice)}</p>`:''}<p>Игровая принадлежность: <strong>${esc(x.games||'не уточнена')}</strong>. Общая карта терминала схематическая и не предоставляет GPS-координаты.</p><button class="v44-secondary" id="v44-map">◎ ОТКРЫТЬ КАРТУ ЗОНЫ</button></section><section class="v44-card"><h3>СВЯЗАННЫЕ АНОМАЛЬНЫЕ ПОЛЯ</h3>${rel.length?rel.map(r=>`<div class="v44-relation"><b>${r.g}</b>${rowLink(r.a)}<small>${esc(r.artifacts.slice(0,5).join(', ')||'артефакты не уточнены')}</small></div>`).join(''):'<p class="v44-muted">Прямых подтверждённых совпадений названия места в аномальном реестре не найдено.</p>'}</section>`}
+ function similarSection(x){const candidates=related(x);return `<section class="v44-card"><h3>СВЯЗАННЫЕ ДОСЬЕ</h3><p class="v44-muted">Подбор по упоминаниям и общим тегам. Это навигационные совпадения, а не доказательство сюжетной связи.</p><div class="v44-links">${candidates.length?candidates.map(y=>rowLink(y)).join(''):'<span class="v44-muted">Дополнительные ссылки не найдены.</span>'}</div></section>`}
+ function sourceSection(x){const sources=originalSources(x);return `<section class="v44-card"><h3>ПРОВЕРКА ИСТОЧНИКОВ</h3>${sources.length?sources.map((s,i)=>`<p><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">Источник ${i+1}: ${esc(s.label)} ↗</a></p>`).join(''):'<p class="v44-muted">Отдельные ссылки для этой записи не внесены. Это не означает, что недостающие факты можно придумывать.</p>'}<p class="v44-muted">Ссылки открываются только по нажатию и требуют интернета. Сам ПДА остаётся автономным.</p></section>`}
+ function renderDetail(){
+  const x=recs(active).find(z=>z.id===selected),root=$('v44-detail');if(!root)return;
+  if(!x){root.innerHTML='<div class="v44-empty">Выберите запись в списке.</div>';return}
+  const noteKey=`${x.cat}:${x.id}`;const ownNote=typeof notes[noteKey]==='string'?notes[noteKey]:'';
+  const compareOptions=recs(active).filter(y=>y.id!==x.id).sort((a,b)=>a.name.localeCompare(b.name,'ru')).map(y=>`<option value="${esc(y.id)}">${esc(y.name)}</option>`).join('');
+  root.innerHTML=`<div class="v44-dossier-top"><div class="v44-eyebrow">${esc(types[active][0])} / РАСШИРЕННОЕ ДОСЬЕ</div><h2>${esc(x.name)}</h2><div class="v44-chips"><span>${esc(x.games||'игры не уточнены')}</span>${(x.tags||[]).slice(0,5).map(t=>`<span>${esc(t)}</span>`).join('')}</div><button id="v44-open-original" class="v44-primary">↗ ОТКРЫТЬ В ОСНОВНОМ АРХИВЕ</button></div>${summary(x)}${factCards(x)}${active==='mutants'?mutantSection(x):active==='artifacts'?artifactSection(x):locationSection(x)}${similarSection(x)}<section class="v44-card"><h3>СОПОСТАВИТЬ С ДРУГИМ ДОСЬЕ</h3><div class="v44-compare-controls"><select id="v44-compare-select">${compareOptions}</select><button id="v44-compare-go">СРАВНИТЬ</button></div><div id="v44-compare-result"></div></section><section class="v44-card"><h3>ЛИЧНАЯ ПОЛЕВАЯ ЗАПИСЬ</h3><p class="v44-muted">Хранится только в этом браузере, доступна в резервной копии v4.4.</p><textarea id="v44-note" maxlength="2000" placeholder="Собственные наблюдения, координаты внутри игры, цели, находки…">${esc(ownNote)}</textarea><button id="v44-note-save">💾 СОХРАНИТЬ ЗАПИСЬ</button><span id="v44-note-status" aria-live="polite"></span></section>${sourceSection(x)}`;
+  $('v44-open-original').onclick=()=>jumpToMain(x);
+  $('v44-compare-go').onclick=()=>{
+   const y=recs(active).find(z=>String(z.id)===$('v44-compare-select').value);if(!y)return;
+   $('v44-compare-result').innerHTML=`<div class="v44-compare-grid"><div><h4>${esc(x.name)}</h4><p>${esc(x.short)}</p><small>${esc(x.games||'')}</small></div><div><h4>${esc(y.name)}</h4><p>${esc(y.short)}</p><small>${esc(y.games||'')}</small></div></div><p class="v44-muted">Качественное сопоставление описаний. Численные параметры не подставляются без проверенного источника.</p>`;
+  };
+  $('v44-note-save').onclick=()=>{const value=$('v44-note').value.slice(0,2000);if(value.trim())notes[noteKey]=value;else delete notes[noteKey];if(saveNotes())$('v44-note-status').textContent=' ✓ СОХРАНЕНО';};
+  if(active==='locations')$('v44-map').onclick=()=>{const preferred=game!=='all'&&matches(x,game)?game:(x.games||'').split(/[,;]+/).map(s=>s.trim()).find(s=>games.includes(s))||'ТЧ';close();if(typeof openSection==='function')openSection('map',{game:preferred})};
+ }
+ function jumpToMain(x){close();if(typeof openSection==='function'&&typeof selectEntry==='function'){openSection(x.cat,{game:'all'});selectEntry(x.id,true)}}
+ function install(){
+  const home=document.getElementById('home'),actionbar=home?.querySelector('.actionbar');if(actionbar){const b=document.createElement('button');b.type='button';b.className='v44-launch';b.innerHTML='<span>⌖</span> БОЛЬШИЕ ЭНЦИКЛОПЕДИИ <small>126 ДОСЬЕ</small>';b.onclick=()=>open();actionbar.append(b)}
+  if(typeof selectEntry==='function'){
+   const orig=selectEntry;selectEntry=function(id,...args){const result=orig.call(this,id,...args);const x=DB.find(y=>y.id===id);if(!x||!types[x.cat])return result;const reading=document.getElementById('reading');if(!reading||reading.querySelector('.v44-open-dossier'))return result;
+    const b=document.createElement('button');b.type='button';b.className='v44-open-dossier';b.textContent='▤ ОТКРЫТЬ БОЛЬШУЮ ЭНЦИКЛОПЕДИЮ / УГЛУБЛЁННОЕ ДОСЬЕ';b.onclick=()=>open(x.cat,x.id);reading.append(b);return result;
+   };
+  }
+  const f=document.getElementById('total-foot');if(f)f.textContent=`${DB.length} МАТЕРИАЛОВ / v4.9`;
+  document.title='АРХИУМ v6.10 — Энциклопедия Зоны';
+  if(window.PDA_ZONE_V4)window.PDA_ZONE_V4.version='4.4';
+  window.PDA_ZONE_V44={open,version:'4.5',counts:Object.fromEntries(Object.keys(types).map(k=>[k,recs(k).length]))};
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
+})();
+
+</script><style>
+/* АРХИУМ v4.5 — faction atlas, accessible on narrow phones. */
+.v45-overlay{position:fixed;inset:0;z-index:100300;background:#020704ed;color:#d9e8ce;font:14px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;padding:13px}
+.v45-overlay[hidden]{display:none!important}.v45-overlay *{box-sizing:border-box}
+.v45-panel{display:flex;flex-direction:column;min-height:0;overflow:hidden;gap:11px;width:min(1200px,100%);height:min(94dvh,960px);border:1px solid #8e995b;border-radius:12px;background:linear-gradient(145deg,#1c2b1e,#09140e 68%);box-shadow:0 15px 90px #000;padding:clamp(12px,2vw,24px)}
+.v45-panel button,.v45-panel input,.v45-panel select,.v45-panel textarea{font:inherit;color:#e8f3d5;background:#14271a;border:1px solid #64815a;border-radius:5px;padding:9px 11px;min-width:0}.v45-panel button{cursor:pointer}.v45-panel button:hover,.v45-panel button:focus-visible{background:#385039;border-color:#d6eca1}
+.v45-panel a{color:#a4e59b;overflow-wrap:anywhere}.v45-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.v45-head small,.v45-label{font-size:10px;color:#c0dc94;font-weight:900;letter-spacing:.09em}.v45-head h2{font-size:clamp(17px,2.7vw,25px);color:#f0e5a5;letter-spacing:.05em;margin:2px 0;line-height:1.2}.v45-head>button{flex-shrink:0}.v45-caption{font-size:12px;color:#b4c1ae;margin:0}
+.v45-tabs{display:flex;gap:7px;flex-wrap:wrap}.v45-tabs button{font-size:12px;font-weight:900}.v45-tabs button[aria-pressed=true]{background:#4c6339;border-color:#dfd18f}
+.v45-filters{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.v45-filters input{flex:1;min-width:180px}.v45-filters select{min-width:113px}.v45-filters span{color:#e5e5a2;font-weight:800}
+.v45-grid{display:grid;grid-template-columns:minmax(200px,270px) minmax(0,1fr);gap:10px;min-height:0;flex:1;overflow:hidden}.v45-list,.v45-detail{min-height:0;overflow:auto;border:1px solid #426046;border-radius:8px;background:#0b1a11;padding:10px;scrollbar-color:#65825f transparent}
+.v45-list{display:flex;flex-direction:column;gap:5px}.v45-entry{display:grid;gap:3px;text-align:left;overflow-wrap:anywhere}.v45-entry small{font-size:10px;color:#b5c6ab}.v45-entry.selected{background:#4a6037!important;color:#fff;border-color:#f1d48b}
+.v45-detail{padding:clamp(12px,2vw,20px)}.v45-profile-head{border-bottom:1px solid #58704b;padding-bottom:14px;margin-bottom:14px}.v45-profile-head h2{font-size:clamp(22px,3vw,30px);color:#f1e8aa;margin:5px 0}.v45-profile-head p{color:#d1ddc2;font-size:14px}.v45-profile-head button{background:#40512a;font-weight:800}
+.v45-card{border:1px solid #3f6244;border-radius:8px;background:#10231a;padding:14px;margin:11px 0}.v45-card h3{color:#d9ef9a;margin:0 0 9px;font-size:14px}.v45-card p{font-size:13px;line-height:1.7;overflow-wrap:anywhere;margin:7px 0 12px}.v45-card summary{cursor:pointer;font-weight:900;color:#efca81}.v45-muted{color:#a3b6a4;font-size:12px!important}.v45-warning{background:#49382077;border-left:3px solid #dda75c;padding:10px;font-size:12px}
+.v45-game-row{display:grid;grid-template-columns:36px minmax(0,1fr);gap:12px;align-items:start;border-bottom:1px solid #3d5844;padding:13px 0}.v45-game-row:last-child{border-bottom:0}.v45-game-row>div:first-child{font-weight:900;color:#f7d78b}.v45-game-row strong{display:block;color:#e9eac7}.v45-game-row small{display:block;color:#b7c7b2;margin:3px 0}.v45-game-row p{margin:6px 0 0}
+.v45-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.v45-links{display:flex;gap:6px;flex-wrap:wrap;margin:9px 0}.v45-link{font-size:12px!important;padding:7px 9px!important;line-height:1.3;text-align:left;overflow-wrap:anywhere}.v45-card textarea{width:100%;min-height:96px;resize:vertical;display:block;margin:9px 0}.v45-card #v45-save-status{color:#c9eb9b;margin-left:9px}
+.v45-tag{display:inline-block;border:1px solid #496a4c;border-radius:5px;color:#c2d0bd;padding:7px 9px;font-size:12px;line-height:1.3}
+.home .actionbar .v45-launch{grid-column:1 / -1;min-height:51px;background:linear-gradient(120deg,#374c2b,#172819)!important;color:#e6edab!important;border:1px solid #b8c479!important;font-size:12px;font-weight:900;letter-spacing:.04em;white-space:normal;overflow-wrap:anywhere;text-align:center;padding:12px}
+.v45-open{display:block;width:100%;background:#2c4329!important;color:#e7e5ab!important;border:1px solid #a6bc77!important;padding:12px;margin:17px 0 12px;min-height:45px;white-space:normal;line-height:1.35;font-weight:900}
+@media(max-width:710px){
+ .v45-overlay{padding:0}.v45-panel{height:100dvh;max-height:none;width:100%;border:0;border-radius:0;padding:10px;gap:8px}
+ .v45-head h2{font-size:17px}.v45-head>button{font-size:11px;padding:7px}.v45-caption{font-size:10px;line-height:1.4;max-height:42px;overflow:auto}
+ .v45-tabs{gap:5px}.v45-tabs button{flex:1;font-size:10px;padding:8px 5px}.v45-filters{gap:6px}.v45-filters input{flex:1 1 100%;min-width:0}.v45-filters select{flex:1}
+ .v45-grid{display:flex;flex-direction:column;gap:7px}.v45-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:145px;min-height:80px;flex:0 0 auto;align-content:start;padding:6px}.v45-entry{padding:7px!important;font-size:11px}.v45-entry small{font-size:9px}
+ .v45-detail{flex:1;min-height:0;padding:11px}.v45-two{grid-template-columns:1fr;gap:0}.v45-card{padding:11px;margin:9px 0}.v45-card p{font-size:12px}
+ .home .actionbar .v45-launch{grid-column:1 / -1!important;font-size:12px!important;min-height:52px!important}
+}
+@media(max-height:620px) and (max-width:710px){.v45-caption{display:none}.v45-list{max-height:92px;min-height:65px}}
+
+</style><script>
+/* АРХИУМ 4.5 — deep faction registry; original paraphrases, no game dialogue. */
+(()=>{
+ 'use strict';
+ if(typeof DB==='undefined'||!Array.isArray(DB))return;
+ const norm=s=>String(s||'').toLocaleLowerCase('ru').replace(/ё/g,'е').trim();
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const G=['ТЧ','ЧН','ЗП'];
+ const profiles={
+  'Долг':{
+   type:'Военизированная группировка',motto:'Защита внешнего мира от опасностей Зоны',leaders:['Генерал Воронин','Генерал Крылов','Шульга'],places:['Росток','Агропром','Янов'],
+   ideology:['Организация придерживается строгой дисциплины и считает аномальную Зону угрозой, которую необходимо сдерживать.','Её бойцы участвуют в рейдах против мутантов и вооружённых противников. В официальном описании подчёркивается, что найденные артефакты могут передаваться научным исследователям.','Давняя вражда со «Свободой» отражает расхождение взглядов на право людей пользоваться ресурсами Зоны.'],
+   byGame:{'ТЧ':['Росток / Бар','Генерал Воронин','Район Росток служит важным центром группировки, связанным с её бойцами и управлением. Отношения со «Свободой» напряжены.'],'ЧН':['НИИ «Агропром»','Генерал Крылов','В приквеле основная база связана с Агропромом; группировка участвует в борьбе за влияние и территорию.'],'ЗП':['Станция Янов','Подполковник Шульга','На Янове действует отдельное подразделение. Решения игрока по побочным заданиям способны влиять на отношение его бойцов.']},
+   conflicts:['Свобода'],connections:['Учёные-экологи','Военные'],spoiler:[],sources:['https://cs.stalker-game.com/en/?page=personages']
+  },
+  'Свобода':{
+   type:'Идеологическая сталкерская группировка',motto:'Свободный доступ к Зоне и знаниям о ней',leaders:['Лукаш','Чехов','Локи'],places:['Армейские склады','Тёмная долина','Янов'],
+   ideology:['Сторонники «Свободы» выступают против закрытого режима и монополии государства на сведения о Зоне.','Идеология группы не сводится к простому владению артефактами: она включает отношение к исследованиям, путешествиям и праву на доступ.','Противостояние с «Долгом» проходит через разные части серии, но состав подразделений и точки базирования меняются.'],
+   byGame:{'ТЧ':['Армейские склады','Лукаш','Основная база и знакомые персонажи связаны с районом Армейских складов.'],'ЧН':['Тёмная долина','Чехов','Во время войны группировок центр деятельности находится в Тёмной долине.'],'ЗП':['Станция Янов','Локи','Подразделение Локи делит регион с другими сталкерами; отношения можно изучать через побочные задания.']},
+   conflicts:['Долг','Военные'],connections:['Одиночки'],spoiler:[],sources:['https://cs.stalker-game.com/en/?page=personages']
+  },
+  'Наёмники':{
+   type:'Контрактные вооружённые группы',motto:'Работа по заказу; цели зависят от контракта',leaders:[],places:['Дикая территория','Затон','Юпитер'],
+   ideology:['Наёмники не представлены в трилогии как единый открытый орден с прозрачной общей целью. Отряды действуют по контрактам и могут иметь разных заказчиков.','Хорошая подготовка в бою не означает одинаковой лояльности всех подразделений.','Для конкретного столкновения важнее выяснить задачу отряда и игровой эпизод, чем приписывать всем наёмникам одну постоянную базу.'],
+   byGame:{'ТЧ':['Дикая территория и другие боевые эпизоды','Единого командира не установлено','Отдельные группы участвуют в столкновениях и операциях вокруг освоенных сталкерами районов.'],'ЧН':['Разные районы','Единого командира не установлено','Наёмные бойцы встречаются как участники отдельных конфликтов, не обязательно воюя за собственную территорию.'],'ЗП':['Затон, Юпитер и конкретные объекты','Руководители отдельных отрядов','Контракты становятся частью локальных историй и побочных расследований.']},
+   conflicts:[],connections:['Одиночки','Учёные-экологи'],spoiler:[],sources:['https://soc.stalker-game.com/?page=personages']
+  },
+  'Монолит':{
+   type:'Вооружённая группировка центра Зоны',motto:'Защита центральных областей и объектов',leaders:[],places:['Припять','ЧАЭС','Юпитер'],
+   ideology:['В ТЧ и других событиях серии бойцы «Монолита» особенно опасны на путях к центру Зоны.','Их поведение связано с фанатичной преданностью загадочному объекту и контролем доступа к центральным районам.','При первом прохождении полезно изучать их действия и территории без преждевременного раскрытия сюжетных причин.'],
+   byGame:{'ТЧ':['Припять, ЧАЭС и северные подходы','Единого обычного лидера не указано','Монолитовцы охраняют пути, важные для позднего сюжета.'],'ЧН':['Подходы к центру','Подробности зависят от сюжетного этапа','Группировка относится к опасным силам центральной Зоны, но прямые встречи зависят от сценария.'],'ЗП':['Припять и окрестные объекты','Отдельные отряды','Помимо действующих бойцов есть бывшие монолитовцы, например люди Бродяги. Их история раскрывает часть последствий прошлых событий.']},
+   conflicts:['Одиночки'],connections:['Отряд Бродяги','Коллективное сознание'],spoiler:['Происхождение и состояние части бойцов тесно связаны с поздними тайнами Зоны и событиями центральной сюжетной линии.','В ЗП у бывших монолитовцев появляется возможность искать место среди других групп.'],sources:['https://soc.stalker-game.com/?page=personages']
+  },
+  'Одиночки':{
+   type:'Независимые сталкеры и временные объединения',motto:'Выживание, торговля, исследования и собственные цели',leaders:[],places:['Кордон','Скадовск','Янов'],
+   ideology:['Название «одиночки» объединяет множество независимых людей, но не предполагает общего верховного командования.','Лагеря новичков, охотники за артефактами, проводники и небольшие объединения могут иметь разную мотивацию.','Оценка отношения к игроку зависит от конкретного человека, группы и событий, а не от универсального лозунга всех независимых сталкеров.'],
+   byGame:{'ТЧ':['Кордон, Бар и другие лагеря','Местные организаторы и торговцы','Независимые сталкеры составляют большую часть встречаемых исследователей, торговцев и искателей артефактов.'],'ЧН':['Кордон и другие территории','Отец Валерьян и локальные лидеры','Нейтральные сталкеры могут участвовать в войне группировок и бороться за проходы.'],'ЗП':['Скадовск, Янов и полевые лагеря','Борода и другие местные лидеры','На Затоне и Юпитере важны отдельные сообщества и их побочные истории.']},
+   conflicts:['Бандиты'],connections:['Учёные-экологи'],spoiler:[],sources:['https://cs.stalker-game.com/en/?page=world']
+  },
+  'Чистое небо':{
+   type:'Исследовательская сталкерская группировка',motto:'Изучение природы Зоны и происходящих изменений',leaders:['Лебедев','Каланча','Суслов','Холод'],places:['Болота'],
+   ideology:['«Чистое небо» действует скрытно и уделяет внимание научному изучению необычных явлений Зоны.','В начале приквела организация находится на Болотах, где её участники пытаются разобраться в причинах роста аномальной активности.','В отличие от «Долга» и «Свободы», её характер не сводится к одной из двух идеологических позиций по закрытию или открытию Зоны.'],
+   byGame:{'ТЧ':['Нет активной базы, подтверждённой этим досье','—','Здесь не следует автоматически приписывать организации присутствие как самостоятельной игровой фракции.'],'ЧН':['Болота','Лебедев','Организация имеет ключевую роль в приквеле. Каланча связан с исследованиями, Суслов — с торговлей, Холод — с лагерем.'],'ЗП':['Нет активной базы, подтверждённой этим досье','—','Не следует переносить статус группировки из ЧН в события ЗП без отдельного источника.']},
+   conflicts:['Ренегаты'],connections:['Учёные-экологи'],spoiler:['Поздние события приквела связывают судьбу организации с продвижением к центру Зоны.'],sources:['https://cs.stalker-game.com/en/?page=clear_sky']
+  },
+  'Бандиты':{
+   type:'Разрозненные преступные отряды',motto:'Контроль добычи, территории и выгодных сделок',leaders:['Боров','Йога','Султан'],places:['Тёмная долина','Свалка','Затон'],
+   ideology:['Бандиты встречаются в виде разных группировок, связанных с грабежом, вымогательством и борьбой за прибыль.','Единого вечного лидера всех бандитов трилогии нет: разные эпизоды показывают различных главарей и локальные интересы.','Отношения с одиночками могут быть враждебными, но конкретные исходы зависят от игры и выполняемых заданий.'],
+   byGame:{'ТЧ':['Тёмная долина, Свалка','Боров и местные главари','Бандитские формирования контролируют отдельные важные участки и встречаются в заданиях.'],'ЧН':['Свалка','Йога','Организованная группа участвует в войне фракций и борьбе за контроль над территорией.'],'ЗП':['Затон / Скадовск','Султан','Сюжетные варианты позволяют игроку повлиять на противостояние людей Султана и сталкеров Бороды.']},
+   conflicts:['Одиночки'],connections:['Наёмники'],spoiler:[],sources:[]
+  },
+  'Военные':{
+   type:'Государственные вооружённые подразделения',motto:'Охрана периметра и выполнение операций',leaders:[],places:['Кордон','ЧАЭС','Припять'],
+   ideology:['Военные охраняют границы Зоны, ограничивают незаконное проникновение и участвуют в операциях внутри территории.','Отношения с независимыми сталкерами часто напряжённые, но нельзя считать все подразделения и всех офицеров взаимозаменяемыми.','В ЗП расследование провала государственной операции занимает центральное место в сюжете.'],
+   byGame:{'ТЧ':['Посты на окраинах и внутренние объекты','Командиры отдельных частей','Посты и патрули особенно заметны на подступах к Зоне.'],'ЧН':['Периметр и направления военных операций','Командование отдельных подразделений','Военные остаются отдельной силой на фоне борьбы группировок.'],'ЗП':['Центральная Зона и следы операции «Фарватер»','Командование операции; Дегтярёв действует как агент СБУ','Расследование крушения вертолётов раскрывает последствия неудавшейся операции.']},
+   conflicts:['Одиночки','Свобода'],connections:['Операция «Фарватер»'],spoiler:[],sources:['https://cop.stalker-game.com/product.php?page=game']
+  },
+  'Учёные-экологи':{
+   type:'Научные организации и экспедиции',motto:'Исследование аномалий, артефактов и окружающей среды',leaders:['Профессор Сахаров','Профессор Герман','Профессор Озёрский'],places:['Янтарь','Юпитер'],
+   ideology:['Учёные исследуют необычные физические и биологические явления Зоны, используя лаборатории, приборы и защитное снаряжение.','Их задачи отличаются от территориальной войны; сотрудничество со сталкерами часто связано с добычей образцов, защитой экспедиций и передачей сведений.','Исследовательские группы не обязательно подчиняются единому полевому командиру для всех частей трилогии.'],
+   byGame:{'ТЧ':['Янтарь / научный бункер','Профессор Сахаров','Исследования связаны с опасными районами и особенностями аномальной среды.'],'ЧН':['Научные объекты разных районов','Исследователи и местные сотрудники','Научное изучение Зоны сохраняет значение на фоне войны фракций.'],'ЗП':['Бункер учёных на Юпитере','Герман и Озёрский','Экспедиции и исследования в районе Юпитера связаны с рядом побочных задач.']},
+   conflicts:[],connections:['Долг','Одиночки'],spoiler:[],sources:['https://cs.stalker-game.com/en/?page=world']
+  },
+  'Ренегаты':{
+   type:'Локальные враждебные вооружённые отряды',motto:'Сохранение контроля над захваченными участками',leaders:[],places:['Болота'],
+   ideology:['Ренегаты имеют важную роль в начале «Чистого неба» как противники исследовательской группировки на Болотах.','В рамках оригинальной трилогии их не следует рассматривать как столь же широко представленную структуру во всех трёх частях.','Данные о едином руководстве и постоянной сети баз за пределами ЧН в этом архиве не подтверждаются.'],
+   byGame:{'ТЧ':['Не представлены отдельной основной группировкой','—','Не следует приписывать им сюжетные базы ТЧ.'],'ЧН':['Болота','Единый известный командир не подтверждён','Занимают ряд участков и противостоят «Чистому небу».'],'ЗП':['Не представлены отдельной основной группировкой','—','Не следует переносить роль болотных отрядов на ЗП.']},
+   conflicts:['Чистое небо'],connections:['Бандиты'],spoiler:[],sources:['https://cs.stalker-game.com/en/?page=world']
+  }
+ };
+ const units=[
+ ['Группа Стрелка','Одиночки','ТЧ, ЧН','Стрелок, Клык, Призрак','Разные участки Зоны','Небольшая исследовательская группа, чья деятельность связана с поиском путей к центру и ключевыми сюжетными тайнами.','Это не самостоятельная массовая группировка с сетью баз. В досье следует разделять историю участников и поздние раскрытия о Меченом.',true],
+ ['Отряд Бродяги','Монолит','ЗП','Бродяга','Район Юпитера','Бывшие бойцы «Монолита», пытающиеся найти безопасное место среди других сталкеров.','Их история допускает сюжетное взаимодействие с «Долгом» или «Свободой» при определённых условиях. Это отдельный отряд, а не новая общезонная фракция.',true],
+ ['Подразделение Шульги','Долг','ЗП','Подполковник Шульга','Станция Янов','Бойцы «Долга» в районе Янова, представляющие интересы организации на Юпитере.','Игрок может взаимодействовать с руководителем подразделения в рамках побочных заданий и местных отношений.',false],
+ ['Подразделение Локи','Свобода','ЗП','Локи','Станция Янов','Отряд «Свободы» на Янове, соседствующий с бойцами других группировок.','Отношения с ними зависят от действий в отдельных сюжетных линиях; не следует путать их с командованием ЧН или ТЧ.',false],
+ ['Банда Йоги','Бандиты','ЧН','Йога','Свалка','Крупное бандитское объединение на Свалке времён «Чистого неба».','Важная локальная сила в контексте войн группировок, но не единое руководство бандитов во всех играх.',false],
+ ['Банда Борова','Бандиты','ТЧ','Боров','Тёмная долина','Местное бандитское формирование в «Тени Чернобыля», связанное с Тёмной долиной.','Его история относится к конкретному эпизоду ТЧ и не заменяет сведения о других преступных группах.',false],
+ ['Люди Султана','Бандиты','ЗП','Султан','Затон / Скадовск','Группа бандитов, действующая вокруг торговли и влияния на Затоне.','Взаимодействие со сталкерами Бороды влияет на развитие местной побочной истории.',false],
+ ['Охрана Спартака','Одиночки','ЗП','Спартак','Затон / Скадовск','Небольшое вооружённое объединение, связанное с охраной сталкеров и делами Бороды.','Не самостоятельная фракция с общей идеологией; играет роль в конкретных событиях Затона.',false],
+ ['Сообщество Бороды','Одиночки','ЗП','Борода','Скадовск','Местные сталкеры, торговые связи и организованные группы вокруг Бородиного дела на Скадовске.','Это сообщество и сеть контактов, а не единая обязательная для всех одиночек организация.',false],
+ ['Охотники Гонты','Одиночки','ЗП','Гонта','Затон','Небольшая группа охотников за мутантами, связанная с заданиями и историей поисков опасных существ.','Их история дополняет жизнь сталкеров Затона, но не является отдельной большой фракцией.',false],
+ ['Учёные Янтаря','Учёные-экологи','ТЧ, ЧН','Профессор Сахаров','Янтарь','Исследовательский центр, связанный с изучением аномальной среды и опасных участков.','Отдельная научная площадка внутри более широкой темы экологов и исследователей Зоны.',false],
+ ['Экспедиция Германа и Озёрского','Учёные-экологи','ЗП','Герман, Озёрский','Юпитер / научный бункер','Научные сотрудники и связанные с ними задания в районе Юпитера.','Сбор сведений и исследования часто требуют взаимодействия с независимыми сталкерами.',false],
+ ['Болотные отряды ренегатов','Ренегаты','ЧН','Командиры отдельных отрядов','Болота','Локальные вооружённые группы, противостоящие «Чистому небу» на Болотах.','Описываются отдельно, чтобы не приписывать им общезонную военную структуру.',false],
+ ['Наёмники Дикой территории','Наёмники','ТЧ','Командиры контрактных групп','Дикая территория','Один из заметных контекстов появления вооружённых наёмников в ТЧ.','Не следует считать эту группу центральным руководством всех наёмников серии.',false],
+ ['Военная охрана периметра','Военные','ТЧ, ЧН','Командиры отдельных постов','Кордон и границы Зоны','Пограничные посты и патрули, контролирующие проникновение в Зону.','Это функция регулярных сил, а не независимая сталкерская группировка.',false],
+ ['Операция «Фарватер»','Военные','ЗП','Командование операции','Центральная Зона','Военная операция по разведке пути к центру, неудача которой стала исходной точкой расследования в ЗП.','Операция — не новая фракция. Её события связаны с майором Дегтярёвым и потерянными вертолётами.',false],
+ ['О-Сознание','Особая организация','ТЧ','Коллективное сознание','Сюжетные объекты центра','Тайная сущность/структура, связанная с поздними объяснениями феноменов Зоны.','Не приравнивается к обычной группировке бойцов. Изучение её истории раскрывает ключевые сюжетные тайны.',true]
+ ];
+ units.push(...(window.PDA_ZONE_V48_EXTRA_UNITS||[]));
+ const sourceByName={
+  'Долг':'https://cs.stalker-game.com/en/?page=personages',
+  'Свобода':'https://cs.stalker-game.com/en/?page=personages',
+  'Монолит':'https://soc.stalker-game.com/?page=personages',
+  'Чистое небо':'https://cs.stalker-game.com/en/?page=clear_sky',
+  'Военные':'https://cop.stalker-game.com/product.php?page=game'
+ };
+ let added=0;
+ for(const [name,parent,games,leaders,location,short,detail,spoiler] of units){
+  if(DB.some(x=>x.cat==='factions'&&norm(x.name)===norm(name)))continue;
+  DB.push({id:'V45-GRP-'+String(++added).padStart(3,'0'),cat:'factions',name,kind:'Отряд / организация (не отдельная основная фракция)',short,detail,body:[short,detail,`Связь с основной фракцией или структурой: ${parent}. Ключевые лица: ${leaders}. Регион: ${location}.`],games,tags:['Отряд / организация',parent,'Расширенный архив'],spoiler,sources:parent==='Военные'?[{url:'https://cop.stalker-game.com/product.php?page=game',label:'Официальный сюжет ЗП'}]:[]});
+ }
+ const mainNames=Object.keys(profiles),key='pda_v45_faction_notes';
+ let notes={};try{const x=JSON.parse(localStorage.getItem(key)||'{}');if(x&&typeof x==='object'&&!Array.isArray(x))notes=x}catch{}
+ let overlay=null,kind='core',selected='Долг',game='all',query='',priorFocus=null;
+ const $=id=>document.getElementById(id);
+ const findFaction=name=>DB.find(x=>x.cat==='factions'&&norm(x.name)===norm(name));
+ const findOther=name=>DB.find(x=>norm(x.name)===norm(name));
+ function open(type='core',name=null){priorFocus=document.activeElement;kind=type==='units'?'units':'core';selected=name||null;game='all';query='';
+  if(!overlay){overlay=document.createElement('div');overlay.className='v45-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Большой архив группировок');overlay.innerHTML=`<div class="v45-panel"><header class="v45-head"><div><small>АРХИУМ v4.5 / ФРАКЦИОННАЯ КАРТОТЕКА</small><h2>ГРУППИРОВКИ И ОТРЯДЫ ЗОНЫ</h2></div><button id="v45-close">✕ ЗАКРЫТЬ</button></header><p class="v45-caption">10 основных фракций, ${units.length} отдельных формирований. Временные отряды и организации помечены отдельно, чтобы не смешивать их с фракциями.</p><nav id="v45-tabs" class="v45-tabs"></nav><div class="v45-filters"><input id="v45-search" type="search" placeholder="Название, лидер, база, описание…"><select id="v45-game"><option value="all">ВСЕ ИГРЫ</option><option>ТЧ</option><option>ЧН</option><option>ЗП</option></select><span id="v45-count"></span></div><div class="v45-grid"><aside id="v45-list" class="v45-list"></aside><article id="v45-detail" class="v45-detail"></article></div></div>`;document.body.append(overlay);overlay.querySelector('#v45-close').onclick=close;overlay.addEventListener('click',e=>{if(e.target===overlay)close()});
+   $('v45-tabs').onclick=e=>{const b=e.target.closest('[data-v45-kind]');if(b){kind=b.dataset.v45Kind;selected=null;query='';$('v45-search').value='';render()}};
+   $('v45-search').oninput=e=>{query=norm(e.target.value);renderList()};$('v45-game').onchange=e=>{game=e.target.value;renderList()};
+   $('v45-list').onclick=e=>{const b=e.target.closest('[data-v45-name]');if(b){selected=b.dataset.v45Name;renderList();$('v45-detail').scrollIntoView({block:'nearest'})}};
+   $('v45-detail').onclick=e=>{const b=e.target.closest('[data-v45-link]');if(!b)return;const target=b.dataset.v45Link;if(profiles[target]){kind='core';selected=target;game='all';query='';$('v45-search').value='';$('v45-game').value='all';render();return}const x=findOther(target);if(x)goMain(x)};
+  }
+  overlay.hidden=false;$('v45-search').value='';$('v45-game').value='all';render();overlay.querySelector('#v45-close').focus();
+ }
+ function close(){if(overlay)overlay.hidden=true;priorFocus?.focus?.()}
+ document.addEventListener('keydown',e=>{if(!overlay||overlay.hidden)return;if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close()}},true);
+ function candidates(){let arr=kind==='core'?mainNames.map(name=>{const d=profiles[name];return {name,games:findFaction(name)?.games||'ТЧ, ЧН, ЗП',summary:[d.motto,d.type,...d.leaders,...d.places,...d.ideology].join(' ')}}):units.map(x=>({name:x[0],games:x[2],summary:[x[1],x[3],x[4],x[5],x[6]].join(' ')}));return arr.filter(x=>(game==='all'||x.games.split(/[,;]+/).map(y=>y.trim()).includes(game))&&(!query||norm([x.name,x.summary].join(' ')).includes(query)))}
+ function render(){
+  $('v45-tabs').innerHTML=`<button data-v45-kind="core" aria-pressed="${kind==='core'}">⚑ ОСНОВНЫЕ ФРАКЦИИ · ${mainNames.length}</button><button data-v45-kind="units" aria-pressed="${kind==='units'}">▤ ОТРЯДЫ И ОРГАНИЗАЦИИ · ${units.length}</button>`;renderList();
+ }
+ function renderList(){const all=candidates();if(!all.some(x=>x.name===selected))selected=all[0]?.name||null;$('v45-count').textContent=String(all.length);$('v45-list').innerHTML=all.map(x=>`<button data-v45-name="${esc(x.name)}" class="v45-entry${x.name===selected?' selected':''}"><strong>${esc(x.name)}</strong><small>${esc(x.games)}</small></button>`).join('')||'<p>Нет совпадений.</p>';renderDetail()}
+ const link=(name,label)=>profiles[name]||findOther(name)?`<button class="v45-link" data-v45-link="${esc(name)}">${esc(label||name)}</button>`:`<span class="v45-tag">${esc(label||name)}</span>`;
+ function coreDetail(name){const d=profiles[name],original=findFaction(name);if(!d)return '<p>Запись не найдена.</p>';
+  const rows=G.map(g=>{const [base,lead,role]=d.byGame[g];return `<div class="v45-game-row"><div><b>${g}</b></div><div><strong>${esc(base)}</strong><small>Руководство: ${esc(lead)}</small><p>${esc(role)}</p></div></div>`}).join('');
+  const opponents=d.conflicts.map(n=>link(n)).join('')||'<span class="v45-muted">Подтверждённого постоянного конфликта в этой сводке не указано.</span>';
+  const people=d.leaders.map(n=>link(n)).join('')||'<span class="v45-muted">Единого общего руководителя для всех игр не установлено.</span>';
+  const places=d.places.map(n=>link(n)).join('');
+  return `<header class="v45-profile-head"><div class="v45-label">ОСНОВНАЯ ФРАКЦИЯ · ${esc(d.type)}</div><h2>${esc(name)}</h2><p>${esc(d.motto)}</p><button id="v45-main">↗ ОСНОВНОЕ ДОСЬЕ</button></header><section class="v45-card"><h3>ИДЕОЛОГИЯ И ДЕЯТЕЛЬНОСТЬ</h3>${d.ideology.map(p=>`<p>${esc(p)}</p>`).join('')}</section><section class="v45-card"><h3>ПО ТРЁМ ИГРАМ</h3><p class="v45-muted">Неактивная или неподтверждённая база отмечена явно. Локальные подразделения не равны единому штабу.</p>${rows}</section><div class="v45-two"><section class="v45-card"><h3>РУКОВОДИТЕЛИ И ПЕРСОНАЖИ</h3><div class="v45-links">${people}</div><h3>ВАЖНЫЕ МЕСТА</h3><div class="v45-links">${places}</div></section><section class="v45-card"><h3>ИЗВЕСТНОЕ ПРОТИВОСТОЯНИЕ</h3><div class="v45-links">${opponents}</div><h3>СВЯЗАННЫЕ ГРУППЫ</h3><div class="v45-links">${d.connections.map(n=>link(n)).join('')}</div></section></div>${d.spoiler.length?`<details class="v45-card"><summary>⚠ СПОЙЛЕРНЫЕ СВЕДЕНИЯ — ОТКРЫТЬ</summary>${d.spoiler.map(p=>`<p>${esc(p)}</p>`).join('')}</details>`:''}${notesSection(name)}${sources(d.sources,original)}`;
+ }
+ function unitDetail(name){const u=units.find(x=>x[0]===name);if(!u)return '<p>Запись не найдена.</p>';
+  const [_,parent,games,leaders,place,short,detail,spoiler]=u;
+  return `<header class="v45-profile-head"><div class="v45-label">ОТДЕЛЬНЫЙ ОТРЯД / ОРГАНИЗАЦИЯ · ${esc(games)}</div><h2>${esc(name)}</h2><p>${esc(short)}</p><button id="v45-main">↗ ЗАПИСЬ В ОБЩЕМ АРХИВЕ</button></header><section class="v45-card"><h3>ЧТО ЭТО ЗА ГРУППА</h3><p>${esc(detail)}</p><p class="v45-muted">Это подразделение, временная группа или сюжетная структура — не дополнительная основная фракция трилогии.</p></section><div class="v45-two"><section class="v45-card"><h3>ПРИНАДЛЕЖНОСТЬ</h3><div class="v45-links">${link(parent)}</div><h3>КЛЮЧЕВЫЕ ЛИЦА</h3><p>${esc(leaders)}</p></section><section class="v45-card"><h3>МЕСТО И ВРЕМЯ</h3><p>${esc(place)}</p><p>Игра: ${esc(games)}</p></section></div>${spoiler?'<p class="v45-warning">Эта запись может затрагивать сюжетные раскрытия.</p>':''}${notesSection(name)}${sources([],findFaction(name))}`;
+ }
+ function notesSection(name){const key='faction:'+name;return `<section class="v45-card"><h3>МОИ ПОЛЕВЫЕ ЗАМЕТКИ</h3><textarea id="v45-note" maxlength="3000" placeholder="События, отношения, задания, собственные наблюдения…">${esc(notes[key]||'')}</textarea><button id="v45-save">💾 СОХРАНИТЬ</button><small id="v45-save-status" aria-live="polite"></small></section>`}
+ const originalCoreDetail=coreDetail;
+ coreDetail=function(name){
+  let base=originalCoreDetail(name),d=profiles[name];if(!d)return base;
+  const officialNames=new Set(d.leaders.map(norm));
+  const searchText=x=>norm([x.name,x.short,x.detail,...(x.body||[]),...(x.archive||[]).map(v=>v.text||''),...(x.tags||[])].join(' '));
+  const people=DB.filter(x=>x.cat==='characters').map(x=>({x,score:(officialNames.has(norm(x.name))?10:0)+(searchText(x).includes(norm(name))?6:0)})).filter(o=>o.score>0).sort((a,b)=>b.score-a.score).slice(0,24).map(o=>o.x);
+  const articles=DB.filter(x=>x.cat==='knowledge'&&!String(x.id).startsWith('V41-')&&(searchText(x).includes(norm(name))||norm(x.name).includes(norm(name)))).slice(0,12);
+  const panel=`<section class="v45-card"><h3>ПЕРСОНАЖИ, СВЯЗАННЫЕ С ФРАКЦИЕЙ</h3><p class="v45-muted">Список формируется по явным упоминаниям и ключевым лицам из базы. Упоминание не всегда означает постоянное членство.</p><div class="v45-links">${people.map(x=>link(x.name)).join('')||'<span class="v45-muted">Именные досье не найдены.</span>'}</div><h3>СЮЖЕТНЫЕ И ТЕМАТИЧЕСКИЕ МАТЕРИАЛЫ</h3><div class="v45-links">${articles.map(x=>link(x.name)).join('')||'<span class="v45-muted">Прямых совпадений в статьях нет.</span>'}</div></section>`;
+  return base.replace('<section class="v45-card"><h3>МОИ ПОЛЕВЫЕ ЗАМЕТКИ',panel+'<section class="v45-card"><h3>МОИ ПОЛЕВЫЕ ЗАМЕТКИ');
+ };
+ function sources(extra,original){const collected=[...extra,...((original?.sources||[]).map(x=>typeof x==='string'?x:x.url))].filter(x=>typeof x==='string'&&x.startsWith('https://'));return `<section class="v45-card"><h3>ИСТОЧНИКИ И ПРОВЕРКА</h3>${[...new Set(collected)].slice(0,4).map((url,i)=>`<p><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">Официальный/справочный источник ${i+1} ↗</a></p>`).join('')||'<p class="v45-muted">Для этой локальной заметки отдельная официальная страница не прикреплена.</p>'}<p class="v45-muted">Информация изложена своими словами. Сведения о модах и S.T.A.L.K.E.R. 2 сюда не смешиваются.</p></section>`}
+ function renderDetail(){const root=$('v45-detail');if(!selected){root.innerHTML='<p>Выберите запись.</p>';return}const base=kind==='core'?coreDetail(selected):unitDetail(selected);const marker='<section class="v45-card"><h3>МОИ ПОЛЕВЫЕ ЗАМЕТКИ';root.innerHTML=window.PDA_ZONE_V48?base.replace(marker,window.PDA_ZONE_V48.render(selected,kind)+marker):base;const x=findFaction(selected);$('v45-main').onclick=()=>{if(x)goMain(x)};$('v45-save').onclick=()=>{const value=$('v45-note').value.slice(0,3000),k='faction:'+selected;if(value.trim())notes[k]=value;else delete notes[k];try{localStorage.setItem(key,JSON.stringify(notes));$('v45-save-status').textContent=' ✓ СОХРАНЕНО'}catch{alert('Браузер не сохранил данные')}}}
+ function goMain(x){close();if(typeof openSection==='function'&&typeof selectEntry==='function'){openSection('factions',{game:'all'});selectEntry(x.id,true)}}
+ function install(){const home=document.getElementById('home'),bar=home?.querySelector('.actionbar');if(bar){const b=document.createElement('button');b.type='button';b.className='v45-launch';b.textContent='⚑ ПОЛНЫЙ РЕЕСТР ГРУППИРОВОК · 39 ПРОФИЛЕЙ';b.onclick=()=>open();bar.append(b)}
+  if(typeof selectEntry==='function'){const orig=selectEntry;selectEntry=function(id,...args){const ret=orig.call(this,id,...args),x=DB.find(r=>r.id===id);if(x?.cat==='factions'){const root=document.getElementById('reading');if(root&&!root.querySelector('.v45-open')){const b=document.createElement('button');b.type='button';b.className='v45-open';b.textContent='⚑ ОТКРЫТЬ ПОЛНЫЙ ФРАКЦИОННЫЙ АРХИВ';b.onclick=()=>open(profiles[x.name]?'core':'units',x.name);root.append(b)}}return ret};}
+  document.querySelectorAll('#tiles .tile[data-open="factions"] small').forEach(s=>s.textContent=`${DB.filter(x=>x.cat==='factions').length} ЗАПИСЕЙ`);
+  const f=document.getElementById('total-foot');if(f)f.textContent=`${DB.length} МАТЕРИАЛОВ / v4.9`;
+  if(window.PDA_ZONE_V4)window.PDA_ZONE_V4.version='4.5';document.title='АРХИУМ v6.10 — Энциклопедия Зоны';
+  window.PDA_ZONE_V45={open,main:mainNames.length,units:units.length,added,total:DB.length};
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
+})();
+
+</script><style>
+/* v4.6 mobile-first campaign archive. Containers never require fixed button widths. */
+.v46-overlay{position:fixed;inset:0;z-index:100500;background:#010502f2;color:#e2ebd5;display:flex;align-items:center;justify-content:center;padding:12px;font:14px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif}
+.v46-overlay[hidden]{display:none!important}.v46-overlay *{box-sizing:border-box;min-width:0}
+.v46-dialog{display:flex;flex-direction:column;gap:10px;width:min(1280px,100%);height:min(96dvh,1000px);padding:clamp(12px,2vw,22px);overflow:hidden;background:linear-gradient(145deg,#1b301f 0,#08130d 65%);border:1px solid #9dad67;border-radius:12px;box-shadow:0 15px 85px #000}
+.v46-dialog button,.v46-dialog select,.v46-dialog input,.v46-dialog textarea{font:inherit;color:#e4f3d8;background:#12251a;border:1px solid #607c5a;border-radius:6px;padding:9px 10px}
+.v46-dialog button{cursor:pointer;white-space:normal;overflow-wrap:anywhere;line-height:1.35}.v46-dialog button:focus-visible,.v46-dialog button:hover{border-color:#d4e18d;background:#334a35}.v46-dialog a{color:#b9df98;overflow-wrap:anywhere}
+.v46-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.v46-head h2{font-size:clamp(17px,2.5vw,26px);line-height:1.17;color:#f3e7a4;margin:3px 0}.v46-head p{font-size:12px;color:#a9c3ae;margin:4px 0}.v46-signal{font-size:10px;letter-spacing:.11em;color:#acd78b;font-weight:900}.v46-head>button{flex:0 0 auto;background:#3a2f22;color:#fff0c0;border-color:#a6976b;font-size:12px;font-weight:800}
+.v46-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.v46-tabs button{font-size:12px;font-weight:800;padding:11px 8px;min-height:44px}.v46-tabs button[aria-pressed=true]{background:#4c693b;color:#fff3b1;border-color:#e3d58d}
+.v46-filterbox{display:flex;align-items:end;flex-wrap:wrap;gap:7px}.v46-filterbox label{display:grid;gap:3px;flex:1 1 125px;font-size:9px;font-weight:900;letter-spacing:.06em;color:#a4c399}.v46-filterbox .v46-query{flex:2 1 175px}.v46-filterbox select,.v46-filterbox input{width:100%;font-size:12px;min-height:38px}.v46-filterbox .v46-spoilers{display:flex;flex:1 1 180px;align-items:center;gap:7px;min-height:38px;font-size:10px;white-space:normal;letter-spacing:0}.v46-filterbox .v46-spoilers input{width:17px;height:17px;min-height:0;accent-color:#bddf88;flex-shrink:0}
+.v46-filterbox label[hidden]{display:none!important}
+.v46-stats{display:flex;flex-wrap:wrap;gap:8px;color:#a6bf9b;font-size:10px;font-weight:800}.v46-stats span{padding:3px 8px;border:1px solid #3e6546;border-radius:5px}.v46-stats b{color:#ece6a7}
+.v46-content{min-height:0;flex:1;display:grid;grid-template-columns:minmax(200px,300px) minmax(0,1fr);gap:10px;overflow:hidden}.v46-results,.v46-detail{min-height:0;overflow:auto;padding:10px;background:#0b1910;border:1px solid #426a48;border-radius:8px;scrollbar-color:#5c7c59 transparent}.v46-results{display:flex;flex-direction:column;gap:5px}.v46-result{display:block;text-align:left;width:100%;padding:10px!important}.v46-result-top{display:flex;justify-content:space-between;align-items:start;gap:5px;color:#f1eac5}.v46-result-top strong{font-size:12px}.v46-result small{display:block;color:#b1cbb0;font-size:10px;margin:4px 0}.v46-result-desc{font-size:11px;color:#b3c1ae;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}.v46-result.is-active{background:#455c34;border-color:#d8c97f}.v46-mark{font-size:17px;font-weight:900;color:#bce48f}
+.v46-detail{padding:clamp(12px,2vw,22px);overflow-wrap:anywhere}.v46-dossier-title{border-bottom:1px solid #4c6a48;padding-bottom:12px;margin-bottom:12px}.v46-dossier-title small{font-size:10px;letter-spacing:.07em;color:#a9cc8b;font-weight:800}.v46-dossier-title h2{color:#f2e5ab;font-size:clamp(21px,3vw,30px);line-height:1.2;margin:7px 0 12px}.v46-chips{display:flex;flex-wrap:wrap;gap:5px}.v46-chips span{border:1px solid #77915e;border-radius:4px;padding:4px 7px;font-size:10px;color:#d4e4bb}
+.v46-card{padding:14px;margin:10px 0;background:#13251b;border:1px solid #3e6549;border-radius:8px}.v46-card h3{color:#dbec9c;font-size:13px;margin:0 0 9px;letter-spacing:.03em}.v46-card p{font-size:13px;line-height:1.65;margin:8px 0}.v46-muted{font-size:11px;color:#a6bba4}.v46-linkrow{display:flex;flex-wrap:wrap;gap:7px}.v46-linkrow button{font-size:11px;padding:7px 9px}.v46-progress{background:#23331e}.v46-progress label{font-size:10px;color:#d2dfab;font-weight:800;display:block;margin:14px 0 6px}.v46-progress textarea{width:100%;display:block;min-height:90px;resize:vertical}.v46-progress .v46-complete{background:#3c512d;border-color:#bad58a;font-weight:900}.v46-progress .v46-complete[aria-pressed=true]{background:#66813d;color:#fff}.v46-save,.v46-native{margin-top:9px;background:#354728!important;font-weight:900}.v46-save-message{display:block;min-height:15px;color:#cbea9e;margin-top:6px}.v46-noitems{font-size:12px;color:#c8d5b9;padding:10px}
+.v46-footer{font-size:10px;color:#8fa38d;line-height:1.4;border-top:1px solid #395641;padding-top:7px}
+.home .actionbar .v46-launch{grid-column:1 / -1;min-height:54px;padding:11px;background:linear-gradient(110deg,#415229,#1c331e)!important;border:1px solid #d2bd70!important;color:#fbefa4!important;text-align:center;white-space:normal;overflow-wrap:anywhere;font-weight:900;font-size:12px;line-height:1.35;letter-spacing:.02em}
+.v46-open{display:block;width:100%;padding:13px!important;margin:13px 0!important;min-height:46px;line-height:1.4;background:#32442a!important;border:1px solid #acbc75!important;color:#f5e9b2!important;font-size:12px;font-weight:900;white-space:normal;overflow-wrap:anywhere}
+@media(max-width:710px){
+ .v46-overlay{padding:0}.v46-dialog{width:100%;height:100dvh;max-height:none;border:0;border-radius:0;padding:9px;gap:7px}
+ .v46-head h2{font-size:17px}.v46-head p{display:none}.v46-head>button{font-size:10px;padding:7px}.v46-signal{font-size:9px}
+ .v46-tabs{gap:5px}.v46-tabs button{font-size:10px;padding:7px 4px;min-height:43px;line-height:1.25}
+ .v46-filterbox{gap:5px}.v46-filterbox label{flex:1 1 calc(33.33% - 5px);font-size:9px}.v46-filterbox select,.v46-filterbox input{font-size:11px;padding:7px;min-height:34px}.v46-filterbox .v46-query{flex:1 1 60%}.v46-filterbox .v46-spoilers{flex:1 1 35%;font-size:9px;min-height:32px}
+ .v46-stats{font-size:9px;gap:4px}.v46-stats span{padding:2px 5px}
+ .v46-content{display:flex;flex-direction:column;gap:6px}.v46-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:135px;min-height:72px;flex:0 0 auto;align-content:start;padding:6px;gap:5px}.v46-result{padding:7px!important}.v46-result-top strong{font-size:11px}.v46-result small{font-size:9px}.v46-result-desc{display:none}.v46-detail{flex:1;padding:11px}.v46-card{padding:11px}.v46-card p{font-size:12px}.v46-dossier-title h2{font-size:21px}
+ .v46-footer{font-size:9px;max-height:28px;overflow:auto}.home .actionbar .v46-launch{grid-column:1/-1!important;font-size:11px!important;padding:10px!important}
+}
+@media(max-height:600px) and (max-width:710px){.v46-results{max-height:75px;min-height:55px}.v46-stats span:last-child{display:none}.v46-footer{display:none}}
+
+</style><script>
+/* АРХИУМ 4.6 — route-friendly searchable index for missions, contacts and incidents. */
+(()=>{
+ 'use strict';
+ const data=window.PDA_ZONE_V46_DATA;
+ if(!data)return;
+ const $=id=>document.getElementById(id),N=s=>String(s??'').toLocaleLowerCase('ru').replace(/ё/g,'е');
+ const esc=s=>String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
+ const types={quests:'ЗАДАНИЯ',services:'КОНТАКТЫ И УСЛУГИ',events:'СОБЫТИЯ ЗОНЫ'};
+ const key='pda_v46_quest_progress';
+ let progress={done:{},notes:{}};
+ try{const p=JSON.parse(localStorage.getItem(key)||'{}');if(p&&typeof p==='object'){progress.done=p.done&&typeof p.done==='object'?p.done:{};progress.notes=p.notes&&typeof p.notes==='object'?p.notes:{}}}catch{}
+ let overlay=null,section='quests',game='all',classFilter='all',region='all',status='all',query='',selected=null,showSpoilers=false,priorFocus=null;
+ const all=()=>data[section==='quests'?'quests':section==='services'?'contacts':'events'];
+ const save=()=>{try{localStorage.setItem(key,JSON.stringify(progress));return true}catch{return false}};
+ const availableRegions=()=>[...new Set(all().filter(x=>game==='all'||x.games===game).map(x=>x.region))].sort((a,b)=>a.localeCompare(b,'ru'));
+ const filtered=()=>all().filter(x=>(game==='all'||x.games===game)&&(region==='all'||x.region===region)&&(classFilter==='all'||section!=='quests'||x.topic===classFilter)&&(status==='all'||section!=='quests'||!!progress.done[x.id]===(status==='done'))&&(!query||N([x.name,x.short,x.detail,x.region,x.contact,x.person,...(x.tags||[])].join(' ')).includes(query))&&(!x.spoiler||showSpoilers));
+ function launcher(){const bar=$('home')?.querySelector('.actionbar');if(!bar||bar.querySelector('.v46-launch'))return;const b=document.createElement('button');b.className='v46-launch';b.type='button';b.textContent=`▤ БОЛЬШОЙ АРХИВ ЗАДАНИЙ · ${data.quests.length} ЗАДАНИЙ / ${data.contacts.length} КОНТАКТОВ / ${data.events.length} СОБЫТИЙ`;b.onclick=()=>open('quests');bar.append(b)}
+ function open(next='quests',name=null){priorFocus=document.activeElement;section=types[next]?next:'quests';game='all';classFilter='all';region='all';status='all';query='';selected=name;showSpoilers=!!(name&&all().find(x=>x.id===name)?.spoiler);
+  if(!overlay){overlay=document.createElement('div');overlay.className='v46-overlay';overlay.hidden=true;overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','ПДА: расширенный каталог заданий и событий');overlay.innerHTML=`<div class="v46-dialog"><header class="v46-head"><div><span class="v46-signal">◉ АРХИУМ / v4.6 · ДОСЬЕ КАМПАНИЙ</span><h2>ОПЕРАТИВНЫЙ АРХИВ ЗОНЫ</h2><p>Сюжетные этапы, побочные дела, контакты и история по трём играм.</p></div><button type="button" id="v46-close" aria-label="Закрыть архив">✕ ЗАКРЫТЬ</button></header><nav class="v46-tabs" id="v46-tabs" aria-label="Разделы архива"></nav><div class="v46-filterbox"><label>ИГРА<select id="v46-game"><option value="all">ВСЕ ИГРЫ</option><option>ТЧ</option><option>ЧН</option><option>ЗП</option></select></label><label id="v46-kind-label">ТИП<select id="v46-kind"><option value="all">ВСЕ ТИПЫ</option><option value="Сюжет">СЮЖЕТ</option><option value="Побочное">ПОБОЧНЫЕ</option></select></label><label>РЕГИОН<select id="v46-region"><option value="all">ВСЕ РЕГИОНЫ</option></select></label><label id="v46-status-label">ПРОХОЖДЕНИЕ<select id="v46-status"><option value="all">ВСЕ</option><option value="undone">НЕ ОТМЕЧЕНО</option><option value="done">ПРОЙДЕНО</option></select></label><label class="v46-query">ПОИСК<input id="v46-search" type="search" placeholder="Задание, NPC, объект, история…"></label><label class="v46-spoilers"><input id="v46-spoilers" type="checkbox"> ПОКАЗЫВАТЬ СПОЙЛЕРЫ</label></div><div class="v46-stats" id="v46-stats"></div><div class="v46-content"><aside class="v46-results" id="v46-results" aria-label="Найденные записи"></aside><article class="v46-detail" id="v46-detail"></article></div><footer class="v46-footer">Фанатский справочник оригинальной трилогии. Заголовки служат навигацией: могут не совпадать с буквальными формулировками задания. Диалоги и игровые материалы не копируются.</footer></div>`;document.body.append(overlay);
+   $('v46-close').onclick=close;overlay.addEventListener('click',e=>{if(e.target===overlay)close()});
+   $('v46-tabs').onclick=e=>{const b=e.target.closest('[data-v46-tab]');if(b){section=b.dataset.v46Tab;game='all';region='all';status='all';classFilter='all';query='';selected=null;$('v46-game').value='all';$('v46-kind').value='all';$('v46-status').value='all';$('v46-search').value='';render()}};
+   $('v46-game').onchange=e=>{game=e.target.value;region='all';renderRegion();renderList()};
+   $('v46-kind').onchange=e=>{classFilter=e.target.value;renderList()};
+   $('v46-status').onchange=e=>{status=e.target.value;renderList()};
+   $('v46-region').onchange=e=>{region=e.target.value;renderList()};
+   $('v46-search').oninput=e=>{query=N(e.target.value.trim());renderList()};
+   $('v46-spoilers').onchange=e=>{showSpoilers=e.target.checked;renderList()};
+   $('v46-results').onclick=e=>{const b=e.target.closest('[data-v46-id]');if(b){selected=b.dataset.v46Id;renderList();$('v46-detail').scrollIntoView({block:'nearest'})}};
+   $('v46-detail').onclick=e=>{const b=e.target.closest('[data-v46-action]');if(!b)return;const kind=b.dataset.v46Action;if(kind==='done'){const x=find(selected);if(!x)return;if(progress.done[x.id])delete progress.done[x.id];else progress.done[x.id]=true;if(save())renderList();else $('v46-save-message').textContent='⚠ Браузер не сохранил отметку.'}else if(kind==='notes'){const x=find(selected);if(!x)return;const note=$('v46-note')?.value.slice(0,2500)||'';if(note.trim())progress.notes[x.id]=note;else delete progress.notes[x.id];$('v46-save-message').textContent=save()?'✓ Заметка сохранена':'⚠ Сохранение недоступно'}else if(kind==='native'){const x=find(selected);if(x)goNative(x)}else if(kind==='record'){const x=DB.find(v=>v.id===b.dataset.id);if(x)goNative(x)}else if(kind==='jump'){selected=b.dataset.id;renderList()}};
+  }

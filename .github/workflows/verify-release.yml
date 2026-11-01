@@ -1,0 +1,21 @@
+name: Verify ARCHIUM release
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'release-parts/**'
+      - 'index.html'
+      - 'tools/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reassemble exact release and validate checksum
+        run: |
+          python tools/assemble_release.py
+          python tools/check_release.py dist/index.html --version 6.51

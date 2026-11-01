@@ -1,0 +1,38 @@
+name: Deploy ARCHIUM v6.51 to GitHub Pages
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'release-parts/**'
+      - 'tools/assemble_release.py'
+      - '.github/workflows/pages.yml'
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify and assemble release
+        run: |
+          python tools/assemble_release.py
+          python tools/check_release.py dist/index.html --version 6.51
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

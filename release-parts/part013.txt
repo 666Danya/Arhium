@@ -1,0 +1,500 @@
+ root.append(el('small','archium-soc-archive-stats','ТЧ: дополнительно найдены 4 официальные страницы GSC с оригинальными иллюстрациями (Воронка, Жарка, Кисель, Электра). Они открываются из досье и НЕ включены в счётчик встроенных изображений.'));
+ root.append(el('small','','Копия сохраняет только добавленные вами изображения, а не все внешние ссылки. Не удаляйте её после обновления сайта.'));
+ return root;
+}
+
+function selectEntry(id,showOnMobile=false){const x=list.find(r=>r.id===id)||DB.find(r=>r.id===id);if(!x)return;selected=id;if(showOnMobile&&window.matchMedia('(max-width:710px)').matches)$('window-main').classList.add('detail-active');for(const node of $('entry-list').querySelectorAll('.entry')){const on=node.dataset.id===id;node.classList.toggle('selected',on);node.setAttribute('aria-selected',String(on))}
+const root=$('reading');root.replaceChildren();root.scrollTop=0;if(x.cat==='anomalies' && x.fieldGuide)root.dataset.anomalyClass=x.fieldGuide.group;else delete root.dataset.anomalyClass;const back=el('button','back-to-list','← К СПИСКУ');back.type='button';back.addEventListener('click',()=>{ $('window-main').classList.remove('detail-active');$('entry-list').focus() });root.append(back);root.append(el('div','minihead',`АРХИУМ / ${x.kind==='Статья'?'СТАТЬЯ':'ДОСЬЕ'} / ${x.id}`),el('h2','',x.name),el('p','lead',x.short||'Справочная запись'));
+const bits=el('div','databits');bits.append(el('span','bit',x.availability==='cut'?'АРХИВ / ВЫРЕЗАНО':(x.games?'ИГРЫ: '+x.games:'ИГРЫ: НЕ УТОЧНЕНО')));for(const tag of (x.tags||[]).slice(0,4))bits.append(el('span','bit',tag));if(x.spoiler)bits.append(el('span','bit','СОДЕРЖИТ СПОЙЛЕРЫ'));if(x.availability==='cut')bits.append(el('span','bit','⚠ НЕ В ОБЫЧНОЙ КАМПАНИИ'));root.append(bits);
+// v6.30: catalogue weapon specification cards (base values; upgrades may vary)
+if(x.cat==='weapons' && x.weaponSpecs){
+ const statbox=el('section','archium-wpn-specs');
+ statbox.append(el('div','archium-wpn-heading','◈  ПАСПОРТ ВООРУЖЕНИЯ'));
+ const statgrid=el('div','archium-wpn-grid');
+ for(const [label,value] of Object.entries(x.weaponSpecs)){
+  const one=el('div','archium-wpn-cell');
+  one.append(el('span','archium-wpn-label',label),el('strong','archium-wpn-value',value));
+  statgrid.append(one);
+ }
+ statbox.append(statgrid,el('p','archium-wpn-disclaimer',x.weaponRecordType?'Справочная запись: '+x.weaponRecordType.toLowerCase()+'. Для именных образцов, модулей и вырезанных материалов характеристики и доступность требуют проверки в конкретной игре.':'Базовая конфигурация. Параметры и модернизации могут отличаться в ТЧ, ЧН и ЗП.'));
+ root.append(statbox);
+}
+
+// v6.32: editorial field guide. Ratings are qualitative navigation aids, not game stats.
+if(x.cat==='anomalies' && x.fieldGuide){
+ const f=x.fieldGuide;
+ const box=el('section','archium-anomaly-protocol');box.dataset.class=f.group;
+ const hd=el('div','archium-anomaly-protocol-head');
+ hd.append(el('div','archium-anomaly-mark',f.icon));
+ const title=el('div','archium-anomaly-protocol-title');title.append(el('b','','ПОЛЕВОЙ ПРОТОКОЛ'),el('small','','ТИП: '+f.groupTitle));hd.append(title);
+ hd.append(el('span','archium-anomaly-risk',f.risk));box.append(hd);
+ const grid=el('div','archium-anomaly-protocol-grid');
+ for(const [head,text] of [['ПРИЗНАКИ',f.sign],['ВОЗДЕЙСТВИЕ',f.effect],['КАК ОБНАРУЖИТЬ',f.detection],['КАК ОБОЙТИ',f.tactic]]){
+  const cell=el('div','archium-anomaly-cell');cell.append(el('span','',head),el('p','',text));grid.append(cell);
+ }
+ box.append(grid);
+ const note=el('p','archium-anomaly-rule');note.append(el('strong','','ПРИМЕЧАНИЕ: '),document.createTextNode(f.caveat));box.append(note);
+ box.append(el('p','archium-anomaly-protocol-caption','Оценка опасности — редакционная, не числовая характеристика игры. Советы относятся только к механикам S.T.A.L.K.E.R.'));
+ root.append(box);window.ARCHIUM_V643?.mountBolt(x,root);
+}
+
+let media=el('div','dossier-media');let img=el('div','dossier-image');const hasIcon=x.cat==='weapons'&&!!WEAPON_ICONS[x.id];
+const hasAnomalyImage=x.cat==='anomalies'&&!!ANOMALY_IMAGES[x.id];
+const hasFactionPatch=x.cat==='factions'&&!!FACTION_PATCHES[x.id];
+if(hasFactionPatch){
+ img.classList.add('faction-dossier-image');
+ let badge=el('img','faction-dossier-patch');badge.src=FACTION_PATCHES[x.id];
+ badge.alt='Предоставленная пользователем эмблема группировки «'+x.name+'»';badge.decoding='async';
+ img.append(badge,el('span','faction-image-caption','ЭМБЛЕМА ГРУППИРОВКИ'));
+}else if(hasAnomalyImage){
+ img.classList.add('anomaly-dossier-image');
+ let art=el('img','anomaly-dossier-art');art.src=ANOMALY_IMAGES[x.id];
+ art.alt='Авторская иллюстрация аномалии '+x.name+' — не игровой скриншот';art.decoding='async';img.append(art);
+}else if(hasIcon){img.classList.add('weapon-dossier-image');let art=el('img','weapon-dossier-art');art.src=WEAPON_ICONS[x.id];art.alt='Авторская иллюстрация '+x.name;img.append(art);}else{img.style.backgroundImage=`url("${artImage(x.cat)}")`;img.setAttribute('role','img');img.setAttribute('aria-label','Авторская атмосферная иллюстрация категории, не официальный скриншот');}
+let side=el('div','dossier-notes');side.append(el('b','','СВЕДЕНИЯ ИЗ АРХИВА'),el('span','',`Раздел: ${CATS.find(r=>r[0]===x.cat)?.[1]||'База знаний'}.`),el('span','',x.availability==='cut'?'Не используется в обычной кампании оригинальных игр.':(x.games?'Игры: '+x.games+'.':'Игра не уточнена.')),el('span','image-disclaimer',hasFactionPatch?(x.id==='R328-0003'?'Нашивка предоставлена пользователем; изображение относится к более поздним материалам S.T.A.L.K.E.R. 2 и не является подтверждённой эмблемой оригинальной трилогии.':'Изображение нашивки предоставлено пользователем; принадлежность и варианты эмблем отмечены без выдумывания игровых характеристик.'):(hasAnomalyImage?'Авторская иллюстрация, не скриншот из игры; данные о появлении и артефактах сверены по трилогии. Цвет и форма могут отличаться от оригинальных визуальных эффектов.':(hasIcon?'Авторская концептуальная иллюстрация, подобранная по типу оружия. Не является точным игровым спрайтом; уникальные версии могут отличаться.':'Авторская иллюстрация раздела; точная игровая фотография объекта пока не добавлена.'))));media.append(img,side);
+if(x.cat==='anomalies' && x.fieldGuide){
+ media.classList.add('archium-anomaly-hero');
+ const f=x.fieldGuide;
+ const hud=el('div','archium-anomaly-hero-hud');
+ hud.append(el('span','','◈ '+f.groupTitle.toLocaleUpperCase('ru')),el('span','','УГРОЗА / '+f.risk.toLocaleUpperCase('ru')));
+ img.append(hud);
+ const prot=root.querySelector('.archium-anomaly-protocol');
+ if(prot)root.insertBefore(media,prot);else root.append(media);
+ const jumps=el('nav','archium-anomaly-jumps');jumps.setAttribute('aria-label','Быстрая навигация по досье');
+ for(const [caption,selector] of [['☷  ПОЛЕВОЙ ПРОТОКОЛ','.archium-anomaly-protocol'],['◈  ТРИЛОГИЯ И АРТЕФАКТЫ','.canonical-anomalies']]){
+  const button=el('button','archium-anomaly-jump',caption);button.type='button';
+  button.addEventListener('click',()=>{const target=root.querySelector(selector);if(target){target.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});}});
+  jumps.append(button);
+ }
+ root.insertBefore(jumps,prot||null);
+}else root.append(media);
+if(x.cat==='mutants'&&window.ARCHIUM_MUTANT_V646){window.ARCHIUM_MUTANT_V646.mount(x,root,img)}
+if(x.cat==='mutants'&&window.ARCHIUM_V647){window.ARCHIUM_V647.mutant(x,root,img)}
+if(x.cat==='weapons'&&window.ARCHIUM_V647){window.ARCHIUM_V647.weapon(x,root,img)}
+if(x.cat==='suits'&&window.ARCHIUM_SUIT_V649){window.ARCHIUM_SUIT_V649.mount(x,root,img)}
+if(x.cat==='artifacts' && window.ARCHIUM_ARTIFACT_V640){window.ARCHIUM_ARTIFACT_V640.mount(x,root,img)}
+
+if(window.ARCHIUM_V650 && (x.cat==='characters'||x.cat==='factions')){window.ARCHIUM_V650.mount(x,root)}
+
+if(x.cat==='locations' && window.ARCHIUM_V651){window.ARCHIUM_V651.mount(x,root)}
+window.ARCHIUM_V651_GO_TO=(id)=>{openSection('locations',{game:'all'});const rec=DB.find(z=>z.id===id && z.cat==='locations');if(rec){selectEntry(id,true);}};
+window.ARCHIUM_V651_OPEN_MAP=(gameCode)=>{openSection('map',{game:gameCode||'ТЧ'});};
+
+window.ARCHIUM_V650_GO_TO=(cat,id)=>{openSection(cat, {game:'all'});const rec=DB.find(z=>z.id===id&&z.cat===cat);if(rec){selectEntry(id,true);if(window.matchMedia('(max-width:710px)').matches)$('window-main').classList.add('detail-active')}};
+
+
+
+if(x.cat==='anomalies' && x.anomalyByGame){
+  const panel=el('section','canonical-anomalies');
+  panel.append(el('h3','anomaly-panel-title','РАЗЛИЧИЯ МЕЖДУ ТЧ · ЧН · ЗП'));
+  const gameSwitch=el('div','archium-anomaly-game-switch');gameSwitch.setAttribute('role','group');gameSwitch.setAttribute('aria-label','Выбрать часть трилогии в досье');
+  const rows={};const pickButtons={};const approvedScreens={};
+  let screenshotGame='all';
+  const heroImage=img.querySelector('.anomaly-dossier-art');
+  const heroFallback=ANOMALY_IMAGES[x.id];
+  const gamePhotoBanner=el('div','archium-hero-photo-label','◈ АВТОРСКАЯ ИЛЛЮСТРАЦИЯ · ВЫБЕРИТЕ ИГРУ');
+  img.append(gamePhotoBanner);
+  function updateHeroScreenshot(){
+   if(!heroImage)return;
+   const picked=screenshotGame==='all'?null:(approvedScreens[screenshotGame]||null);
+   const target=picked?.archive?null:picked;
+   heroImage.onerror=null;
+   if(target){
+    heroImage.alt='Скриншот из «'+({'ТЧ':'Тени Чернобыля','ЧН':'Чистого неба','ЗП':'Зова Припяти'}[screenshotGame])+'»: '+x.name;
+    heroImage.onerror=()=>{if(heroImage.src===target.url){approvedScreens[screenshotGame]=null;heroImage.onerror=null;heroImage.src=heroFallback;gamePhotoBanner.textContent='◈ КАДР НЕДОСТУПЕН · АВТОРСКАЯ ИЛЛЮСТРАЦИЯ';}};
+    heroImage.src=target.url;gamePhotoBanner.textContent=target.local?'◈ ВАШ КАДР · '+screenshotGame:'◈ ИГРОВОЙ СКРИНШОТ · '+screenshotGame;
+   }else{heroImage.alt='Авторская иллюстрация '+x.name+' (не скриншот)';heroImage.src=heroFallback;gamePhotoBanner.textContent=screenshotGame==='all'?'◈ АВТОРСКАЯ ИЛЛЮСТРАЦИЯ · ВЫБЕРИТЕ ИГРУ':(picked?.archive?'◈ МИНИ-КАДР GSC В ДОСЬЕ НИЖЕ · '+screenshotGame:'◈ АВТОРСКАЯ ИЛЛЮСТРАЦИЯ · '+screenshotGame);}
+  }
+  const pickGame=(value)=>{
+   screenshotGame=value;
+   for(const [g,row] of Object.entries(rows))row.hidden=(value!=='all'&&g!==value);
+   for(const [g,button] of Object.entries(pickButtons))button.setAttribute('aria-pressed',String(g===value));
+   updateHeroScreenshot();
+  };
+  for(const [value,label] of [['all','ВСЕ'],['ТЧ','ТЧ'],['ЧН','ЧН'],['ЗП','ЗП']]){
+   const btn=el('button','',label);btn.type='button';btn.setAttribute('aria-pressed',String(value==='all'));
+   btn.setAttribute('aria-label',value==='all'?'Показать сведения по всем играм':'Показать сведения по игре '+({'ТЧ':'Тень Чернобыля','ЧН':'Чистое небо','ЗП':'Зов Припяти'}[value]));
+   btn.addEventListener('click',()=>pickGame(value));pickButtons[value]=btn;gameSwitch.append(btn);
+  }
+  const gallerySummary=el('div','archium-game-photo-status');
+  for(const g of ['ТЧ','ЧН','ЗП']){
+   const exists=!!x.anomalyByGame[g], verified=!!ARCHIUM_VERIFIED_SHOTS[x.id]?.[g];
+   const shot=ARCHIUM_VERIFIED_SHOTS[x.id]?.[g];
+   const status=el('button','archium-photo-status'+(!exists?' unavailable':''),g+' · '+(!exists?'НЕТ В ИГРЕ':(shot?.archive?'АРХИВ GSC':verified?'ИГРОВОЙ КАДР':'НЕТ КАДРА')));
+   status.type='button';status.disabled=!exists;
+   status.title=exists?'Показать досье и фото: '+g:'Отдельная карточка для этой части отсутствует';
+   status.setAttribute('aria-label',g+': '+(!exists?'аномалия не указана':verified?'указан источник игрового кадра':'подтверждённого кадра пока нет'));
+   status.addEventListener('click',()=>{pickGame(g);panel.scrollIntoView({behavior:'auto',block:'start'})});gallerySummary.append(status);
+  }
+  panel.append(gameSwitch,gallerySummary,el('div','archium-anomaly-game-hint','Выберите игру, чтобы сравнить места встреч и возможные находки. Наличие артефакта не гарантировано.'));
+  for(const g of ['ТЧ','ЧН','ЗП']){
+    let gd=x.anomalyByGame[g],row=el('div','anomaly-game-row');rows[g]=row;
+    row.append(el('h4','',g+' · '+({'ТЧ':'ТЕНЬ ЧЕРНОБЫЛЯ','ЧН':'ЧИСТОЕ НЕБО','ЗП':'ЗОВ ПРИПЯТИ'}[g])));
+    if(gd){
+     row.append(archiumGameScreenshotPanel(x,g,(which,shot)=>{approvedScreens[which]=shot; if(screenshotGame===which)updateHeroScreenshot()}));
+     const socReference=archiumSocReferencePanel(x,g);if(socReference)row.append(socReference);
+     const truth=archiumGameCanonPanel(x,g);if(truth)row.append(truth);
+    }
+    if(gd)row.append(el('p','archium-anomaly-game-stat','АРХИВ: '+(gd.locations||[]).length+' МЕСТ · '+(gd.artifacts||[]).length+' СВЯЗАННЫХ АРТЕФАКТОВ'));
+    if(!gd){row.append(el('p','anomaly-unavailable','В этой части не встречается как данный вид.'));panel.append(row);continue}
+    row.append(el('b','','ГДЕ ИСКАТЬ'));
+    const places=el('ul','anomaly-places');for(const p of gd.locations||[])places.append(el('li','',p));row.append(places);
+    row.append(el('b','','АРТЕФАКТЫ / АНОМАЛЬНОЕ ПОЛЕ'));
+    const chips=el('div','anomaly-artifact-chips');const arts=gd.artifacts||[];
+    if(arts.length){for(const name of arts){const b=el('button','anomaly-artifact-chip',name);b.type='button';const target=DB.find(y=>y.cat==='artifacts' && normalize(y.name)===normalize(name));if(target){b.title='Открыть досье артефакта «'+name+'»';b.setAttribute('aria-label','Открыть связанный артефакт '+name+' ('+g+')');b.addEventListener('click',()=>archiumOpenLinkedRecord(target));}else{b.disabled=true;b.title='Досье будет уточнено'}chips.append(b)}}
+    else chips.append(el('span','anomaly-noart','НЕ ОБРАЗУЕТ / НЕ ПОДТВЕРЖДЕНО'));
+    row.append(chips);if(gd.note)row.append(el('p','anomaly-game-note',gd.note));panel.append(row);
+  }
+  archiumV642AddDossier(x,root,panel,pickGame);window.ARCHIUM_V644?.mount(x,panel,rows);root.append(panel);pickGame(game!=='all'&&rows[game]?game:'all');
+}
+if(x.cat==='artifacts'){root.append(archiumArtifactAnomalyPanel(x));}
+if(x.cat==='artifacts'&&x.artifactOccurrence){root.append(el('p','anomaly-occurrence',x.artifactOccurrence));}
+if(x.body){for(const p of x.body)root.append(el('p','article-par',p))}else if(x.detail){root.append(el('p','article-par',x.detail))}
+if(x.archive?.length){
+ const head=el('h3','expanded-main-title','ДОПОЛНИТЕЛЬНО ПРОВЕРЕНО');root.append(head);
+ for(let fact of x.archive){
+   const card=el('section','expanded-fact');card.append(el('h4','',fact.title),el('p','',fact.text));
+   if(fact.sources?.length){let stamps=el('div','expanded-sources');for(const q of fact.sources){let a=el('a','','ИСТОЧНИК ↗');a.href=q.url;a.target='_blank';a.rel='noopener noreferrer';a.title=q.label;stamps.append(a)}card.append(stamps)}root.append(card)
+ }
+}
+
+const actions=el('div','databits');let fav=el('button','bookmark'+(state.favorites.has(x.id)?' active':''),(state.favorites.has(x.id)?'★ УБРАТЬ ИЗ ИЗБРАННОГО':'☆ В ИЗБРАННОЕ'));fav.addEventListener('click',()=>{if(state.favorites.has(x.id))state.favorites.delete(x.id);else state.favorites.add(x.id);save('pda326_favorites',[...state.favorites]);selectEntry(x.id)});actions.append(fav);if(x.cat==='factions'&&normalize(x.name)==='долг'){let note=el('button','bookmark','▤ История группировки');note.onclick=()=>{openSection('knowledge',{query:'Долг'})};actions.append(note)}root.append(actions);
+if(x.source||x.sources?.length){const links=el('div','read-links');links.append(el('div','minihead','ИСТОЧНИКИ / ДАЛЕЕ'));let sources=[...(x.sources||[])];if(x.source)sources.push({url:x.source,label:'Материал справочника'});for(const s of sources){const url=typeof s==='string'?s:s.url;const label=(typeof s==='string'?'Источник':s.label)||'Источник';if(/^https:\/\//i.test(url||'')){let a=el('a','source',label+' ↗');a.href=url;a.target='_blank';a.rel='noopener noreferrer';links.append(a)}}root.append(links)}
+const related=DB.filter(o=>o.id!==x.id&&o.cat===current&&(o.tags||[]).some(t=>x.tags?.includes(t))).slice(0,5);if(related.length){root.append(el('div','minihead','ПОХОЖИЕ МАТЕРИАЛЫ'));let rr=el('div','related');for(const r of related){let b=el('button','tag-button',r.name+' ↗');b.onclick=()=>{q='';$('section-search').value='';game='all';$('tabs').querySelectorAll('button').forEach(t=>t.setAttribute('aria-pressed',String(t.dataset.game==='all')));renderList();selectEntry(r.id)};rr.append(b)}root.append(rr)}
+;pdaDossierArrival();pdaFxDossierHook()}
+function renderSimple(){const root=$('simple');root.replaceChildren();if(current==='network'){renderZoneNetwork();return;}if(current==='support'){let wrap=el('div','support-layout feedback-layout');let artwork=el('div','support-artwork feedback-artwork');let img=el('img','support-art');img.src=SUPPORT_IMG;img.alt='Атмосферная иллюстрация: тайник с монетами и жетонами на фоне Зоны';artwork.append(img);let glass=el('div','feedback-art-glass');let artLabel=el('div','support-image-caption','АРХИУМ · СВЯЗЬ С ПРОЕКТОМ');let artBadge=el('div','feedback-art-badge','БЕТА-СВЯЗЬ');let artCard=el('div','feedback-art-card');artCard.append(el('div','feedback-art-card-title','ОТКРЫТЫ К ОБРАТНОЙ СВЯЗИ'),el('div','feedback-art-card-sub','Ваши идеи, замечания и поддержка помогают «Архиуму» становиться лучше.'));artwork.append(glass,artLabel,artBadge,artCard);
+let copy=el('div','support-copy feedback-copy');copy.append(el('div','support-eyebrow','АРХИУМ · ОТЗЫВЫ — ПРЕДЛОЖЕНИЯ'),el('h3','','Связь с проектом'));
+let lead=el('p','feedback-lead','Если вы нашли ошибку, хотите предложить новую функцию, заметили неточность в информации или просто хотите поделиться впечатлением — всё это можно сделать здесь.');copy.append(lead);
+let badges=el('div','feedback-badges');for(let t of ['ОТЗЫВЫ','ИДЕИ','ОШИБКИ','ПОДДЕРЖКА'])badges.append(el('span','feedback-badge',t));copy.append(badges);
+let note=el('div','support-free feedback-free','✓ В ОДНОМ МЕСТЕ — ОБРАТНАЯ СВЯЗЬ И ДОБРОВОЛЬНАЯ ПОДДЕРЖКА');copy.append(note);
+let intro=el('div','feedback-intro-copy');for(let line of ['Ниже находятся два удобных направления: написать нам в Telegram или добровольно поддержать развитие энциклопедии.','Мы внимательно собираем идеи по улучшению интерфейса, наполнению досье, исправлению ошибок и будущим разделам «Архиума».'])intro.append(el('p','',line));copy.append(intro);
+let panel=el('div','feedback-panels');
+let p1=el('section','feedback-panel feedback-panel-telegram');let h1=el('div','feedback-panel-head');h1.append(el('span','feedback-panel-icon','✉'),el('div','feedback-panel-title','Отзывы и предложения'));p1.append(h1,el('p','feedback-panel-text','Напишите, что понравилось, что стоит улучшить, какие материалы и разделы вы хотите увидеть дальше.'));
+let list1=el('ul','feedback-list');for(let item of ['идеи по сайту и новым функциям','сообщения об ошибках и багах','замечания по лору и оформлению'])list1.append(el('li','',item));p1.append(list1);let tg=document.createElement('a');tg.className='support-feedback-link feedback-action-link';tg.href='https://t.me/archium_horizon';tg.target='_blank';tg.rel='noopener noreferrer';tg.textContent='✉ TELEGRAM-КАНАЛ · НАПИСАТЬ НАМ ↗';tg.setAttribute('aria-label','Открыть Telegram-канал Архиум для отзывов, предложений и сообщений об ошибках');p1.append(tg,el('div','feedback-link-sub','Ссылка ведёт в наш Telegram-канал, где можно следить за обновлениями и оставлять отклик.'));
+let p2=el('section','feedback-panel feedback-panel-support');let h2=el('div','feedback-panel-head');h2.append(el('span','feedback-panel-icon','◉'),el('div','feedback-panel-title','Поддержка проекта'));p2.append(h2,el('p','feedback-panel-text','«Архиум» остаётся полностью бесплатным. Если захотите помочь проекту на раннем этапе — поддержка доступна добровольно.'));
+let list2=el('ul','feedback-list');for(let item of ['без подписок и обязательных платежей','без закрытых платных разделов','всё уходит на развитие проекта'])list2.append(el('li','',item));p2.append(list2);let donate=document.createElement('a');donate.className='support-donate-link feedback-action-link';donate.href='https://yoomoney.ru/fundraise/1L8106AV00G.261030';donate.target='_blank';donate.rel='noopener noreferrer';donate.setAttribute('aria-label','Поддержать проект через ЮMoney — открыть страницу сбора в новой вкладке');donate.textContent='♡ ПОДДЕРЖАТЬ ЧЕРЕЗ ЮMONEY ↗';p2.append(donate,el('div','feedback-link-sub','Добровольная поддержка открывается на отдельной странице ЮMoney в новой вкладке.'));
+panel.append(p1,p2);copy.append(panel);
+let info=el('div','support-notice feedback-footer-note');info.append(el('b','','ВАЖНО:'),document.createTextNode(' «Архиум» остаётся бесплатной энциклопедией. Отзывы, предложения и сообщения об ошибках можно присылать через Telegram, а поддержку — оформить отдельно через ЮMoney.'));copy.append(info);wrap.append(artwork,copy);root.append(wrap)}else if(current==='journal'){root.append(el('h3','','Полевой журнал'),el('p','','Здесь можно вести собственные заметки о маршрутах и находках. Заметки хранятся только в вашем браузере.'));let label=el('label','field','ЗАПИСИ СТАЛКЕРА'),txt=el('textarea','journal-text');txt.id='journal-text';txt.value=state.journal;txt.placeholder='Маршрут, артефакты, задания, заметки...';txt.addEventListener('input',()=>{state.journal=txt.value;save('pda326_journal',txt.value)});label.htmlFor='journal-text';root.append(label,txt,el('p','fine','Сохранение выполняется автоматически на этом устройстве.'));let b=el('button','primary','Экспорт журнала (.txt)');b.addEventListener('click',()=>download('PDA_ZONE_журнал.txt',state.journal));root.append(b);let title=el('h3','','Избранные досье');root.append(title);let favs=DB.filter(x=>state.favorites.has(x.id));if(!favs.length)root.append(el('p','','Пока нет избранных записей. Добавьте их звёздочкой в досье.'));else{let r=el('div','related');for(let x of favs){let a=el('button','tag-button',x.name);a.onclick=()=>{openSection(x.cat);selectEntry(x.id,true)};r.append(a)}root.append(r)}}else{root.append(el('h3','','Настройки КПК'));let compact=el('label','settings-toggle'),cb=el('input');cb.type='checkbox';cb.checked=$('device').classList.contains('compact');compact.append(cb,el('span','','Компактное отображение'));root.append(compact);let effects=el('label','fx-settings-row');effects.append(el('span','','Интенсивность анимаций'));let levelSelect=el('select','fx-level-select');levelSelect.setAttribute('aria-label','Интенсивность анимаций');for(const [v,n] of [['full','Максимальная · Живой КПК'],['balanced','Умеренная · Плавные переходы'],['off','Выключено · Без эффектов']]){let o=el('option','',n);o.value=v;levelSelect.append(o)}levelSelect.value=pdaCurrentFxLevel();effects.append(levelSelect);root.append(effects);root.append(el('p','fine','Максимальная: анимированный экран загрузки, подсветка, сигналы, реакция кнопок, появление досье, сканирование и радар. Умеренная: только спокойные переходы. Выключено: статичный интерфейс. Системная настройка ограничения движения учитывается автоматически.'));let demo=el('button','primary','▶ ПОКАЗАТЬ ЭФФЕКТЫ');demo.type='button';demo.onclick=()=>{pdaFxPreview();};root.append(demo);let saveSettings=()=>{const lv=levelSelect.value;const st={compact:cb.checked,effects:lv!=='off',level:lv};$('device').classList.toggle('compact',cb.checked);pdaSetFxLevel(lv);save('pda326_settings',st)};cb.onchange=saveSettings;levelSelect.onchange=saveSettings;window.ARCHIUM_MAIN629?.mountSettings(root);window.ARCHIUM_V643?.mountSettings(root);root.append(el('p','notice','АРХИУМ — неофициальная фанатская энциклопедия по оригинальной трилогии. Сайт полностью работает локально. Материалы могут содержать сюжетные спойлеры. Иллюстрации в карточках служат оформлением и не всегда показывают конкретный игровой объект.'));let ex=el('button','primary','Экспорт избранного (.json)');ex.onclick=()=>download('PDA_ZONE_избранное.json',JSON.stringify([...state.favorites],null,2));root.append(ex)}}
+function download(name,contents){const b=new Blob([contents],{type:'text/plain;charset=utf-8'});let u=URL.createObjectURL(b);let a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),3000)}
+// Explicitly labeled schematic: no invented geographic accuracy.
+function showMap(){renderMap();}
+function renderMap(){let area=$('map-canvas');area.replaceChildren();mapScale=1;mapDX=0;mapDY=0;const nodes=ROUTES[currentMapGame];let svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 1000 700');svg.setAttribute('preserveAspectRatio','none');let poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');poly.setAttribute('points',nodes.map(n=>`${n[1]*10},${n[2]*7}`).join(' '));poly.setAttribute('fill','none');poly.setAttribute('stroke','#bfa55c');poly.setAttribute('stroke-width','2');poly.setAttribute('stroke-dasharray','9 7');poly.setAttribute('opacity','.62');svg.append(poly);area.append(svg);nodes.forEach(([name,x,y])=>{let b=el('button','map-node',name);b.style.left=x+'%';b.style.top=y+'%';b.addEventListener('click',()=>{mapSelected=name;updateMapDetails();area.querySelectorAll('.map-node').forEach(t=>t.classList.toggle('on',t===b))});area.append(b)});mapSelected=nodes[0][0];updateMapDetails();area.querySelector('.map-node')?.classList.add('on');applyMapTransform()}
+function updateMapDetails(){let root=$('map-side');root.replaceChildren();root.append(el('div','map-badge','КАРТОГРАФИЯ / '+currentMapGame),el('h3','',mapSelected));let match=DB.find(x=>x.cat==='locations'&&normalize(x.name)===normalize(mapSelected));if(!match)match=DB.find(x=>x.cat==='locations'&&normalize(x.name).includes(normalize(mapSelected)));root.append(el('p','',match?.short||'Узел маршрута из соответствующей игры.'));let controls=el('div','map-controls');for(const [txt,fn] of [['+',()=>{mapScale=Math.min(2.5,mapScale+.2);applyMapTransform()}],['−',()=>{mapScale=Math.max(.8,mapScale-.2);applyMapTransform()}],['⌖',()=>{mapScale=1;mapDX=0;mapDY=0;applyMapTransform()}]]){let b=el('button','',txt);b.addEventListener('click',fn);controls.append(b)}root.append(controls);if(match){let b=el('button','primary','ОТКРЫТЬ ДОСЬЕ ↗');b.onclick=()=>{openSection('locations',{query:match.name});selectEntry(match.id)};root.append(b)}root.append(el('div','map-note','СХЕМА МАРШРУТОВ'));root.append(el('p','maphelp','Это интерактивная условная схема, а не точная игровая карта. Положение узлов служит только для навигации по досье. Перетаскивайте поле или меняйте масштаб.'))}
+function applyMapTransform(){$('map-canvas').style.transform=`translate(${mapDX}px,${mapDY}px) scale(${mapScale})`}
+$('map-area').addEventListener('wheel',e=>{if(current!=='map')return;e.preventDefault();mapScale=Math.max(.8,Math.min(2.5,mapScale+(e.deltaY<0?.12:-.12)));applyMapTransform()},{passive:false});let drag=null;$('map-area').addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;drag={x:e.clientX,y:e.clientY,dx:mapDX,dy:mapDY};$('map-area').setPointerCapture(e.pointerId)});$('map-area').addEventListener('pointermove',e=>{if(!drag)return;mapDX=drag.dx+e.clientX-drag.x;mapDY=drag.dy+e.clientY-drag.y;applyMapTransform()});$('map-area').addEventListener('pointerup',()=>drag=null);$('map-area').addEventListener('pointercancel',()=>drag=null);
+$('tiles').addEventListener('click',e=>{const tile=e.target.closest('[data-open]');if(tile)openSection(tile.dataset.open)});
+$('home').querySelector('.actionbar').addEventListener('click',e=>{const b=e.target.closest('[data-open]');if(b)openSection(b.dataset.open)});
+$('power').addEventListener('click',()=>{onHome();toast('КПК перезапущен. Все разделы доступны.');});
+$('device').querySelector('.hardware').addEventListener('click',e=>{const b=e.target.closest('[data-hw]');if(!b)return;const act=b.dataset.hw;if(act==='home'||act==='back'){onHome();return}const sc=current==='home'?$('home'):current==='map'?$('map-side'):['support','journal','settings'].includes(current)?$('simple'):$('reading');sc.scrollBy({top:act==='down'?260:-260,behavior:'smooth'});});
+$('ws-close').addEventListener('click',onHome);$('ws-home').addEventListener('click',onHome);
+$('tabs').addEventListener('click',e=>{let b=e.target.closest('[data-game]');if(!b)return;game=b.dataset.game;$('tabs').querySelectorAll('button').forEach(t=>t.setAttribute('aria-pressed',String(t===b)));if(current==='map'){currentMapGame=game==='all'?'ТЧ':game;renderMap()}else renderList()});
+$('section-search').addEventListener('input',e=>{q=e.target.value;if(current==='map')return;$('window-main').classList.remove('detail-active');renderList()});
+
+// Search filters across entire database
+const _matchesGame=matchesGame;
+const _renderList=renderList;
+// Reimplement global mode with direct list rendering; individual results maintain their category.
+function openSearch(query){returnFocus=document.activeElement;$('window-main').classList.remove('detail-active');current='search';game='all';q=query;selected=null;$('workspace').classList.add('open');$('workspace').setAttribute('aria-hidden','false');$('home').setAttribute('aria-hidden','true');$('controls').hidden=false;$('section-toolbar').hidden=false;$('window-main').hidden=false;$('map-panel').hidden=true;$('simple').hidden=true;$('ws-title').textContent='ПОИСК ПО БАЗЕ';$('ws-symbol').textContent='⌕';$('section-search').value=q;document.title='Поиск — АРХИУМ';renderSearch();}
+function renderSearch(){list=DB.filter(x=>matchesGame(x)&&normalize([x.name,x.short,x.detail,...(x.body||[]),...(x.tags||[])].join(' ')).includes(normalize(q))).sort((a,b)=>a.name.localeCompare(b.name,'ru'));$('result-count').textContent=`ПО ВСЕЙ БАЗЕ: ${list.length} / ${DB.length}`;$('entry-list').replaceChildren();for(let x of list){let b=el('button','entry');b.type='button';b.dataset.id=x.id;b.setAttribute('role','option');b.append(weaponIconNode(x,'⌕'));let w=el('span');w.append(el('span','row-title',x.name),el('span','row-meta',CATS.find(c=>c[0]===x.cat)?.[1]||'База знаний'));b.append(w);b.onclick=()=>selectEntry(x.id,true);$('entry-list').append(b)}if(!list.length){selected=null;showEmpty()}else selectEntry(list.some(x=>x.id===selected)?selected:list[0].id)}
+// Override unified event pathways for search mode
+// Single section search input listener above also handles global search mode.
+// Game tabs use the shared listener, which dispatches via renderList().
+$('global-search').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();openSearch(e.target.value.trim())}});$('global-search-go').addEventListener('click',()=>openSearch($('global-search').value.trim()));
+$('global-search').addEventListener('input',e=>{if(e.target.value.length>1&&e.inputType==='insertLineBreak')openSearch(e.target.value.trim())});
+// Avoid legacy handler running via extra global listener by treating search separately in main render list
+const oldRender=renderList;
+renderList=function(){if(current==='search')return renderSearch();return _renderList()};
+$('ws-close').addEventListener('click',()=>{if(current==='map')mapScale=1});
+const boot=$('boot');let bootDone=false;
+const skipBoot=()=>{if(!boot||bootDone)return;bootDone=true;boot.classList.add('leave');setTimeout(()=>{boot.remove();pdaPowerOn();if(current==='home')pdaHomeArrival();window.dispatchEvent(new Event('archium:boot-ready'))},650)};
+$('skip-boot')?.addEventListener('click',skipBoot);
+const bootStarted=performance.now(),bootDuration=3800;
+const bootSteps=['ИНИЦИАЛИЗАЦИЯ АРХИВА','ПРОВЕРКА ПОЛЕВЫХ ЗАПИСЕЙ','СКАНИРОВАНИЕ МАРШРУТОВ','ЗАГРУЗКА ДОСЬЕ И СИГНАЛОВ','ТЕРМИНАЛ ГОТОВ'];
+function animateBoot(now){if(bootDone)return;const progress=Math.min(1,(now-bootStarted)/bootDuration);const pct=Math.round(progress*100);
+$('boot-fill').style.width=pct+'%';$('boot-percent').textContent=String(pct).padStart(2,'0')+'%';$('boot-status').textContent=bootSteps[Math.min(4,Math.floor(progress*5))]+'...';
+if(progress>=1)skipBoot();else requestAnimationFrame(animateBoot)}
+if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){$('boot-fill').style.width='100%';$('boot-percent').textContent='100%';setTimeout(skipBoot,200)}else requestAnimationFrame(animateBoot);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&current!=='home'){if(document.activeElement?.tagName==='INPUT'&&document.activeElement.value){document.activeElement.value='';if(document.activeElement===$('section-search')){q='';renderList()}else onHome()}else onHome()}if(e.altKey&&e.key==='ArrowLeft'&&current!=='home'){e.preventDefault();if($('window-main').classList.contains('detail-active')){$('window-main').classList.remove('detail-active')}else onHome()}});
+
+// АРХИУМ v3.36: enhancement hooks. Logic is additive, database untouched.
+let pdaPendingAnimation = 0;
+function pdaMotionEnabled(){return !$('device').classList.contains('no-effects')&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches}
+function pdaSignalTransition(){if(!pdaMotionEnabled())return;const screen=$('screen');screen.classList.remove('pda-transition');void screen.offsetWidth;screen.classList.add('pda-transition')}
+function pdaHomeArrival(){if(!pdaMotionEnabled())return;const h=$('home');h.classList.remove('pda-arriving');Array.from($('tiles').children).forEach((tile,i)=>tile.style.setProperty('--pda-index',String(i)));void h.offsetWidth;h.classList.add('pda-arriving')}
+function pdaDossierArrival(){if(!pdaMotionEnabled())return;const root=$('reading');root.classList.remove('pda-updating');root.querySelector('.pda-reading-scan')?.remove();const beam=document.createElement('div');beam.className='pda-reading-scan';beam.setAttribute('aria-hidden','true');root.prepend(beam);void root.offsetWidth;root.classList.add('pda-updating')}
+// Cursor light: local to hovered tile; zero network requests or canvas.
+$('tiles').addEventListener('pointermove',e=>{if(!pdaMotionEnabled()||e.pointerType==='touch')return;const tile=e.target.closest('.tile');if(!tile)return;const r=tile.getBoundingClientRect();tile.style.setProperty('--pda-mx',((e.clientX-r.left)/r.width*100).toFixed(1)+'%');tile.style.setProperty('--pda-my',((e.clientY-r.top)/r.height*100).toFixed(1)+'%')},{passive:true});
+$('screen').addEventListener('pointerdown',e=>{if(!pdaMotionEnabled()||e.button!==0)return;if(!e.target.closest('button'))return;const screen=$('screen');const r=screen.getBoundingClientRect();const ripple=document.createElement('span');ripple.className='pda-hit';ripple.setAttribute('aria-hidden','true');ripple.style.left=(e.clientX-r.left)+'px';ripple.style.top=(e.clientY-r.top)+'px';screen.append(ripple);ripple.addEventListener('animationend',()=>ripple.remove(),{once:true})},{passive:true});
+
+
+// АРХИУМ v3.36: single self-contained FX controller; no external libraries/assets.
+let pdaFxLevel='full';
+function pdaCurrentFxLevel(){return pdaFxLevel}
+function pdaSetFxLevel(level){
+ pdaFxLevel=['full','balanced','off'].includes(level)?level:'full';
+ const root=$('device');root.classList.toggle('fx-full',pdaFxLevel==='full');
+ root.classList.toggle('fx-balanced',pdaFxLevel==='balanced');
+ root.classList.toggle('no-effects',pdaFxLevel==='off');
+ const boot=$('boot');if(boot)boot.classList.toggle('fx-boot-off',pdaFxLevel==='off');
+}
+(function initFxController(){
+ let initial='full';
+ try{const st=JSON.parse(localStorage.getItem('pda326_settings')||'{}');initial=st.level|| (st.effects===false?'off':'full')}catch(e){}
+ pdaSetFxLevel(initial);
+ const screen=$('screen');const fx=el('div','fx-glass');fx.setAttribute('aria-hidden','true');
+ fx.innerHTML='<i class="fx-sweep"></i><i class="fx-gridtrace"></i><i class="fx-corner tl"></i><i class="fx-corner tr"></i><i class="fx-corner bl"></i><i class="fx-corner br"></i>';
+ screen.append(fx);
+ const head=screen.querySelector('.masthead');
+ const bars=el('div','fx-telemetry');bars.setAttribute('aria-hidden','true');
+ for(let i=0;i<24;i++){let b=el('b');b.style.setProperty('--ht',((i*13)%58+24)+'%');b.style.setProperty('--dur',(0.7+(i*7%10)/9).toFixed(2)+'s');b.style.setProperty('--delay',(-i*.11)+'s');bars.append(b)}
+ const label=el('div','fx-telemetry-label','◉ SIGNAL MONITOR');label.setAttribute('aria-hidden','true');head.append(label,bars);
+ const boot=$('boot');if(boot){
+  const orbit=el('div','fx-boot-orbit');orbit.setAttribute('aria-hidden','true');
+  const term=el('div','fx-boot-terminal');term.setAttribute('aria-hidden','true');
+  ['КАНАЛ / АРХИУМ','ПОИСК АКТИВНОГО СИГНАЛА','ДОСТУП К АРХИВУ: ЛОКАЛЬНЫЙ'].forEach(t=>term.append(el('span','',t)));
+  boot.append(orbit,term)
+ }
+ // Readers retain a stable scroll-progress indicator instead of extra animation loops.
+ const wm=$('window-main');const progress=el('div','fx-reader-progress');progress.setAttribute('aria-hidden','true');wm.append(progress);
+ const reading=$('reading');let scrollQueued=false;
+ reading.addEventListener('scroll',()=>{if(scrollQueued)return;scrollQueued=true;requestAnimationFrame(()=>{scrollQueued=false;const denom=reading.scrollHeight-reading.clientHeight;const frac=denom>0?reading.scrollTop/denom:0;wm.style.setProperty('--read-percent',(frac*100).toFixed(1)+'%')})},{passive:true});
+ // Animation-specific geometry is created once, not on every render.
+ document.querySelectorAll('#tiles .tile').forEach(tile=>{let a=el('span','fx-tile-sweep');a.setAttribute('aria-hidden','true');tile.append(a)});
+ document.addEventListener('click',e=>{if(!pdaMotionEnabled())return;let fav=e.target.closest('button.bookmark');if(fav){const screen=$('screen');screen.classList.remove('fx-fav-event');void screen.offsetWidth;screen.classList.add('fx-fav-event')};},{passive:true});
+ const entryList=$('entry-list');const observer=new MutationObserver(()=>{
+  if(pdaFxLevel!=='full')return;
+  Array.from(entryList.querySelectorAll('.entry')).slice(0,12).forEach((node,i)=>node.style.setProperty('--row',String(i)))
+ });observer.observe(entryList,{childList:true});
+})();
+function pdaFxPanelReveal(){if(!pdaMotionEnabled())return;const w=$('workspace');w.classList.remove('fx-reveal');void w.offsetWidth;w.classList.add('fx-reveal');}
+function pdaFxDossierHook(){const w=$('window-main');w.style.setProperty('--read-percent','0%');}
+function pdaPowerOn(){if(!pdaMotionEnabled())return;const screen=$('screen');screen.classList.remove('fx-power-on');void screen.offsetWidth;screen.classList.add('fx-power-on');setTimeout(()=>screen.classList.remove('fx-power-on'),950)}
+function pdaFxPreview(){if(!pdaMotionEnabled()){toast('Анимация выключена или ограничена системными настройками.');return}pdaSignalTransition();const screen=$('screen');screen.classList.remove('fx-demo');void screen.offsetWidth;screen.classList.add('fx-demo');toast('СИСТЕМЫ КПК · ЭФФЕКТЫ АКТИВНЫ');setTimeout(()=>screen.classList.remove('fx-demo'),1200)}
+
+
+/* АРХИУМ 3.37 · СЕТЬ ЗОНЫ — атмосферная офлайн-симуляция.
+   Ни одно сообщение не является цитатой игры, реальным чатом или внешним соединением. */
+const ZONE_SCRIPTS=[{"game":"ТЧ","location":"Кордон","sender":"Седой","kind":"опасность","text":"На дороге к насыпи снова слышен собачий вой. Проверяйте кусты, особенно перед рассветом."},{"game":"ТЧ","location":"Кордон","sender":"Крот","kind":"быт","text":"У костра есть место. Чай остыл, зато разговоров хватит до утра."},{"game":"ТЧ","location":"Кордон","sender":"Сорока","kind":"просьба","text":"Кто идёт к деревне новичков? Нужны бинты. Отзовитесь на частоте."},{"game":"ТЧ","location":"Кордон","sender":"Маяк","kind":"эфир","text":"Вышка у насыпи принимает плохо. Если слышите — передайте сигнал дальше."},{"game":"ТЧ","location":"Свалка","sender":"Гвоздь","kind":"опасность","text":"На кучах железа кто-то шуршит. На слепых псов не похоже. Одиночкам лучше не соваться."},{"game":"ТЧ","location":"Свалка","sender":"Шорох","kind":"находка","text":"В старом кузове нашёл сухие батарейки. Не сокровище, а настроение подняли."},{"game":"ТЧ","location":"Свалка","sender":"Лис","kind":"просьба","text":"Ищу попутчика до Бара. Одному с грузом по дороге неспокойно."},{"game":"ТЧ","location":"Агропром","sender":"Ястреб","kind":"опасность","text":"Подходы к комплексу лучше проверять заранее. Слышал стрельбу у ограждения."},{"game":"ТЧ","location":"Агропром","sender":"Ключ","kind":"эфир","text":"Сигнал в подземельях обрывается через каждые пару шагов. Держитесь ближе к выходу."},{"game":"ТЧ","location":"Агропром","sender":"Тихий","kind":"быт","text":"Свет фонаря стал тускнеть посреди тоннеля. Теперь запасные батареи важнее еды."},{"game":"ТЧ","location":"Тёмная долина","sender":"Боцман","kind":"опасность","text":"Со стороны заброшенных построек доносятся одиночные выстрелы. Кто там — непонятно."},{"game":"ТЧ","location":"Тёмная долина","sender":"Норд","kind":"просьба","text":"Кому нужны сведения о проходах к фабрике? Меняю на новую аптечку."},{"game":"ТЧ","location":"Бар","sender":"Жук","kind":"быт","text":"В Баре спорят, что ценнее: хороший детектор или верный напарник. Я выбираю обоих."},{"game":"ТЧ","location":"Бар","sender":"Клёст","kind":"эфир","text":"В эфире слишком тихо. Кто дошёл до Ростока — отметьтесь, чтобы знали, что живы."},{"game":"ТЧ","location":"Дикая территория","sender":"Пилигрим","kind":"опасность","text":"Возле железнодорожных путей потрескивает воздух. Болты с собой обязательно."},{"game":"ТЧ","location":"Янтарь","sender":"Филин","kind":"опасность","text":"Туман у комплекса усилился. Приборы шалят, лишний раз наружу не выхожу."},{"game":"ТЧ","location":"Янтарь","sender":"Туман","kind":"просьба","text":"Нужен человек, знакомый с дорогой к озеру. Не бесплатно."},{"game":"ТЧ","location":"Армейские склады","sender":"Дрозд","kind":"быт","text":"К ночи похолодало. Кто смеялся над запасным свитером, теперь ищет дрова."},{"game":"ТЧ","location":"Армейские склады","sender":"Север","kind":"опасность","text":"На старой дороге заметили стаю. Не ходите по одному."},{"game":"ТЧ","location":"Припять","sender":"Шёпот","kind":"эфир","text":"На этом канале слышно только ветер. Если кто-то в городе — дайте короткий ответ."},{"game":"ТЧ","location":"ЧАЭС","sender":"Наблюдатель","kind":"эфир","text":"Шум в эфире. Разобрать слова почти невозможно. Продолжаю прослушивание."},{"game":"ЧН","location":"Болота","sender":"Камыш","kind":"опасность","text":"Туман скрыл тропу у воды. На память маршрут лучше не проходить."},{"game":"ЧН","location":"Болота","sender":"Лягуш","kind":"быт","text":"Сапоги наконец высохли. Правда, за окном уже снова дождь."},{"game":"ЧН","location":"Болота","sender":"Тополь","kind":"просьба","text":"Кто у рыбачьего хутора? Нужна помощь донести ящик с инструментом."},{"game":"ЧН","location":"Болота","sender":"Клён","kind":"эфир","text":"Старая вышка снова ловит обрывки разговоров. Проверка канала, приём."},{"game":"ЧН","location":"Кордон","sender":"Вьюн","kind":"опасность","text":"На подходе к блокпосту слышны очереди. Выбирайте путь внимательно."},{"game":"ЧН","location":"Кордон","sender":"Енот","kind":"быт","text":"Ночевал у костра под мокрым тентом. В Зоне сухие носки — уже артефакт."},{"game":"ЧН","location":"Свалка","sender":"Шуруп","kind":"просьба","text":"Нужны два человека на короткий переход. Без геройства, просто пройти вместе."},{"game":"ЧН","location":"Свалка","sender":"Прах","kind":"опасность","text":"После перестрелки над насыпью всё ещё дым. Лучше переждать."},{"game":"ЧН","location":"Агропром","sender":"Степь","kind":"эфир","text":"Вокруг старых корпусов слышен рёв двигателя. Кто там работает — не знаю."},{"game":"ЧН","location":"Агропром","sender":"Перо","kind":"находка","text":"Нашёл целый фильтр для маски. В этой грязи он дороже любых сувениров."},{"game":"ЧН","location":"Тёмная долина","sender":"Грач","kind":"опасность","text":"На дороге к базе незнакомые вооружённые люди. Сразу не показывайтесь."},{"game":"ЧН","location":"Тёмная долина","sender":"Стриж","kind":"быт","text":"Сварил чай на сухом спирте. Пахнет ржавчиной, но пить можно."},{"game":"ЧН","location":"Янтарь","sender":"Омут","kind":"опасность","text":"Прибор пищит возле здания. Пока не понимаю, что именно его тревожит."},{"game":"ЧН","location":"Янтарь","sender":"Молоток","kind":"просьба","text":"Нужен исправный фонарь и помощь с проводкой. Отдам батареи."},{"game":"ЧН","location":"Рыжий лес","sender":"Клык","kind":"опасность","text":"Между деревьями заметно движение, а шагов не слышно. Не доверяйте тишине."},{"game":"ЧН","location":"Рыжий лес","sender":"Леший","kind":"эфир","text":"Связь нестабильная. Если услышите двойной щелчок — повторите сообщение."},{"game":"ЧН","location":"Лиманск","sender":"Тень","kind":"опасность","text":"В пустых окнах что-то мелькнуло. Улица выглядит чистой только издалека."},{"game":"ЧН","location":"Лиманск","sender":"Медведь","kind":"просьба","text":"Ищу проводника через кварталы. В одиночку в незнакомые дворы не полезу."},{"game":"ЧН","location":"Армейские склады","sender":"Гриф","kind":"эфир","text":"Канал жив. Отметьте своё местоположение, если готовы к обмену сведениями."},{"game":"ЗП","location":"Затон","sender":"Причал","kind":"быт","text":"На Скадовске снова спорят, кто лучше варит тушёнку. Готов провести дегустацию."},{"game":"ЗП","location":"Затон","sender":"Пенёк","kind":"опасность","text":"От старого баркаса слышится металлический скрежет. Не советую проверять ночью."},{"game":"ЗП","location":"Затон","sender":"Речной","kind":"просьба","text":"Кто идёт к Скадовску? Подберу попутчика, лишь бы не тащить всё одному."},{"game":"ЗП","location":"Затон","sender":"Уголёк","kind":"находка","text":"Возле сухого дока нашёл рабочий фонарь. Светит слабо, но жить можно."},{"game":"ЗП","location":"Скадовск","sender":"Бородач","kind":"быт","text":"На нижней палубе снова тесно. Кто занимает два места — покупает чай соседям."},{"game":"ЗП","location":"Скадовск","sender":"Радист","kind":"эфир","text":"Установка проверена. Канал шумит, но короткие передачи проходят."},{"game":"ЗП","location":"Скадовск","sender":"Кедр","kind":"просьба","text":"Нужны два человека, чтобы перетащить оборудование. Договоримся на месте."},{"game":"ЗП","location":"Железный лес","sender":"Искра","kind":"опасность","text":"Здесь техника шумит сама по себе. Если детектор молчит — это ещё не повод расслабляться."},{"game":"ЗП","location":"Юпитер","sender":"Воронок","kind":"опасность","text":"Со стороны завода доносится глухой стук. Не похоже на работу станков."},{"game":"ЗП","location":"Юпитер","sender":"Гайка","kind":"находка","text":"В мастерской уцелели пустые контейнеры. Сгодятся для болтов и мелочей."},{"game":"ЗП","location":"Юпитер","sender":"Лом","kind":"просьба","text":"Ищу товарища, который не боится подвалов. Фонарь и маршрут мои."},{"game":"ЗП","location":"Янов","sender":"Серый","kind":"быт","text":"Вечером на Янове тихо. Даже самые разговорчивые сегодня заняты своими делами."},{"game":"ЗП","location":"Янов","sender":"Кварц","kind":"эфир","text":"Связь с севером прерывистая. Короткие передачи пока доходят."},{"game":"ЗП","location":"Янов","sender":"Скрепка","kind":"просьба","text":"Кто продаёт новый фильтр для противогаза? Мой уже не внушает доверия."},{"game":"ЗП","location":"Копачи","sender":"Сверчок","kind":"опасность","text":"Деревня кажется пустой, пока не остановишься. Дальше лучше идти группой."},{"game":"ЗП","location":"Копачи","sender":"Щепка","kind":"находка","text":"В сарае нашёл старый компас. Стрелка дрожит, зато корпус крепкий."},{"game":"ЗП","location":"Припять","sender":"Глухарь","kind":"эфир","text":"В городе плотные помехи. Принимаю обрывки фраз, источник не определяется."},{"game":"ЗП","location":"Припять","sender":"Охотник","kind":"опасность","text":"На перекрёстке слышали тяжёлые шаги. Никто не стал проверять."},{"game":"ЗП","location":"Припять","sender":"Даль","kind":"просьба","text":"Если кто-то идёт к прачечной, сообщите маршрут. Схему потерял в дороге."},{"game":"ЗП","location":"Лаборатория X8","sender":"Код","kind":"опасность","text":"В здании странно звенят трубы. Лучше не трогать незнакомые механизмы."},{"game":"ЗП","location":"Путепровод","sender":"Штык","kind":"эфир","text":"Под землёй связь глохнет. Попытаюсь передать короткое сообщение с выхода."}];
+const ZONE_TYPES={опасность:['☣','ОПАСНОСТЬ','danger'],находка:['✧','НАХОДКА','find'],просьба:['⚑','НУЖНА ПОМОЩЬ','help'],эфир:['⌁','СИГНАЛ',''],быт:['☕','ПОЛЕВОЙ БЫТ','']};
+const ZONE_KEY='pda337_radio';
+const ZONE_GAME_NAMES={all:'ВСЕ',ТЧ:'ТЧ',ЧН:'ЧН',ЗП:'ЗП'};
+const zoneState={messages:[],seen:0,on:true,sound:false,interval:45,filter:'all',kind:'all',search:'',session:0};
+try{
+ const z=JSON.parse(localStorage.getItem(ZONE_KEY)||'null');
+ if(z&&z.version===1){zoneState.messages=Array.isArray(z.messages)?z.messages.slice(0,80).filter(m=>typeof m?.text==='string'&&typeof m?.game==='string'):[];
+ zoneState.seen=Number(z.seen)||0;zoneState.on=z.on!==false;zoneState.sound=z.sound===true;zoneState.interval=[25,45,90].includes(z.interval)?z.interval:45;zoneState.session=Number(z.session)||0;}
+}catch(e){}
+function zoneSave(){try{localStorage.setItem(ZONE_KEY,JSON.stringify({version:1,messages:zoneState.messages.slice(0,80),seen:zoneState.seen,on:zoneState.on,sound:zoneState.sound,interval:zoneState.interval,session:zoneState.session}))}catch(e){}}
+function zoneFormatTime(epoch){return new Date(epoch).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}
+function zoneNext(postNew=false,notify=false){
+ if(!ZONE_SCRIPTS.length)return;
+ let recent=new Set(zoneState.messages.slice(0,18).map(m=>m.key));
+ let pool=ZONE_SCRIPTS.map((m,i)=>({m,i})).filter(({i})=>!recent.has(i));
+ if(!pool.length)pool=ZONE_SCRIPTS.map((m,i)=>({m,i}));
+ const item=pool[Math.floor(Math.random()*pool.length)];
+ const epoch=Date.now(); const id=epoch+'_'+item.i+'_'+zoneState.session++;
+ zoneState.messages.unshift({...item.m,key:item.i,id,time:epoch});zoneState.messages.length=Math.min(zoneState.messages.length,80);
+ zoneSave();zoneUpdateWidgets();
+ if(current==='network'){zoneMarkRead();zoneRefreshMessages();}
+ if(notify&&zoneState.on){zoneLiveNotify(zoneState.messages[0]);zoneSignalSound()}
+ return zoneState.messages[0];
+}
+function zoneUnread(){return zoneState.messages.filter(m=>m.time>zoneState.seen).length}
+function zoneUpdateWidgets(){
+ const last=zoneState.messages[0];
+ const msg=$('zone-preview-text'),counter=$('zone-preview-count'),action=$('zone-action-count');
+ if(msg)msg.textContent=last?`${last.game} · ${last.location} · ${last.sender}: ${last.text}`:'Ожидание радиосигнала…';
+ const n=zoneUnread();for(const node of [counter,action])if(node){node.hidden=n===0;node.textContent=n>99?'99+':String(n)}
+ const preview=$('zone-preview');if(preview)preview.setAttribute('aria-label',n?`Сеть Зоны: ${n} новых сообщений`:'Открыть Сеть Зоны');
+ if(current==='network'&&$('zone-total'))$('zone-total').textContent=String(zoneState.messages.length);
+}
+function zoneMarkRead(){zoneState.seen=Date.now();zoneSave();zoneUpdateWidgets();}
+function zoneSignalSound(){if(!zoneState.sound||!zoneState.on||document.hidden)return;try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return;const ctx=zoneSignalSound.ctx||(zoneSignalSound.ctx=new A());if(ctx.state==='suspended')return;const now=ctx.currentTime;for(const [i,f] of [[0,540],[1,680]]){let osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';osc.frequency.value=f;gain.gain.setValueAtTime(.0001,now+i*.11);gain.gain.exponentialRampToValueAtTime(.018,now+i*.11+.008);gain.gain.exponentialRampToValueAtTime(.0001,now+i*.11+.09);osc.connect(gain);gain.connect(ctx.destination);osc.start(now+i*.11);osc.stop(now+i*.11+.095)}}catch(e){}}
+function zoneLiveNotify(m){
+ if(document.hidden||current==='network')return;
+ $('zone-live-notify')?.remove();
+ const wrap=el('button','zone-live-ping');wrap.id='zone-live-notify';wrap.type='button';
+ wrap.append(el('strong','','⌁ '+m.game+' · '+m.location),el('span','',m.sender+': '+m.text));
+ wrap.onclick=()=>{wrap.remove();openSection('network');};
+ $('display').append(wrap);clearTimeout(zoneLiveNotify.timer);zoneLiveNotify.timer=setTimeout(()=>wrap.remove(),6500);
+}
+function zoneRelatedPlace(m){
+ const a=DB.filter(x=>x.cat==='locations');
+ const key=normalize(m.location);const same=a.find(x=>normalize(x.name)===key);
+ if(same)return same;
+ if(key.length<5)return null;
+ return a.find(x=>normalize(x.name).includes(key)&&x.games?.includes(m.game))||null;
+}
+function zoneRefreshMessages(){
+ if(current!=='network')return;
+ const holder=$('zone-messages');if(!holder)return;
+ const atTop=holder.scrollTop<50;
+ const records=zoneState.messages.filter(m=>(zoneState.filter==='all'||m.game===zoneState.filter)&&(zoneState.kind==='all'||m.kind===zoneState.kind)&&normalize(`${m.text} ${m.sender} ${m.location}`).includes(normalize(zoneState.search)));
+ holder.replaceChildren();
+ if(!records.length){holder.append(el('div','zone-empty','Сообщений по этим фильтрам пока нет. Измените фильтр или поймайте сигнал.'));return;}
+ let fragment=document.createDocumentFragment();
+ for(const m of records){
+  const card=el('article','zone-message'+(m.time>zoneState.seen?' is-new':''));card.setAttribute('data-zone-id',m.id);
+  const header=el('div','zone-message-header');header.append(el('span','zone-message-avatar',ZONE_TYPES[m.kind]?.[0]||'⌁'),el('span','zone-sender',m.sender),el('span','zone-location','⌖ '+m.location),el('span','zone-message-time',zoneFormatTime(m.time)));
+  card.append(header,el('div','zone-message-body',m.text));
+  const chips=el('div','zone-chips');chips.append(el('span','zone-chip',m.game),el('span','zone-chip '+(ZONE_TYPES[m.kind]?.[2]||''),ZONE_TYPES[m.kind]?.[1]||'ЭФИР'));
+  const dossier=zoneRelatedPlace(m);
+  if(dossier){let link=el('button','zone-btn','↗ ДОСЬЕ МЕСТА');link.type='button';link.style.minHeight='22px';link.style.fontSize='9px';link.style.marginLeft='auto';link.onclick=()=>{zoneMarkRead();openSection('locations',{query:dossier.name});selectEntry(dossier.id,true)};chips.append(link)}
+  card.append(chips);fragment.append(card)
+ }
+ holder.append(fragment);if(atTop)holder.scrollTop=0;
+ if($('zone-shown'))$('zone-shown').textContent=String(records.length);
+}
+function renderZoneNetwork(){
+ const root=$('simple');root.replaceChildren();root.classList.add('zone-network-simple');
+ const wrap=el('div','zone-network');
+ const banner=el('div','zone-banner');let label=el('div');label.append(el('span','zone-led'),el('b','','СЕТЬ ЗОНЫ / ПОЛЕВОЙ ЭФИР'));
+ banner.append(label,el('span','zone-offline','◈ OFFLINE · ПОДКЛЮЧЕНИЕ К СЕРВЕРУ НЕ ТРЕБУЕТСЯ'));
+ const disclaimer=el('div','zone-warning','Атмосферная симуляция радиопереговоров для АРХИУМ. Сообщения вымышлены; это не цитаты из игр, не реальные игроки и не настоящие события. Места соответствуют выбранным частям трилогии.');
+ const tools=el('div','zone-tools');
+ for(const code of ['all','ТЧ','ЧН','ЗП']){let b=el('button','zone-tool',ZONE_GAME_NAMES[code]);b.type='button';b.dataset.zoneGame=code;b.setAttribute('aria-pressed',String(zoneState.filter===code));b.onclick=()=>{zoneState.filter=code;zoneDrawFilterButtons();zoneRefreshMessages()};tools.append(b)}
+ tools.append(el('span','zone-sep'));
+ const finder=el('input','zone-search');finder.type='search';finder.id='zone-search';finder.placeholder='Поиск по сообщениям…';finder.value=zoneState.search;finder.oninput=()=>{zoneState.search=finder.value;zoneRefreshMessages()};tools.append(finder);
+ const scan=el('button','zone-btn zone-scan','⌁ ПОЙМАТЬ СИГНАЛ');scan.type='button';scan.id='zone-scan';scan.onclick=()=>{zoneNext(true,false);zoneMarkRead();zoneRefreshMessages()};tools.append(scan);
+ const mobileOpts=el('div','zone-mobile-opts');
+ let mobileCategory=el('select');mobileCategory.setAttribute('aria-label','Тип сообщений');
+ for(const [k,v] of [['all','Все сообщения'],['опасность','Опасности'],['находка','Находки'],['просьба','Помощь'],['быт','Быт'],['эфир','Эфир']]){let o=el('option','',v);o.value=k;mobileCategory.append(o)}
+ mobileCategory.value=zoneState.kind;
+ mobileCategory.onchange=()=>{zoneState.kind=mobileCategory.value;zoneDrawFilterButtons();zoneRefreshMessages()};mobileOpts.append(mobileCategory);
+ let mobileAuto=el('label');let mb=el('input');mb.type='checkbox';mb.checked=zoneState.on;mb.onchange=()=>{zoneState.on=mb.checked;zoneSave();zoneSchedule();if($('zone-auto-desktop'))$('zone-auto-desktop').checked=zoneState.on};mobileAuto.append(mb,el('span','','Автоэфир'));mobileOpts.append(mobileAuto);
+ tools.append(mobileOpts);
+ const main=el('div','zone-feed-body');const feed=el('div','zone-messages');feed.id='zone-messages';feed.setAttribute('role','feed');feed.setAttribute('aria-label','Лента сообщений Зоны');
+ const side=el('aside','zone-radio-side');side.append(el('div','zone-radio-heading','◉ МОНИТОР РАДИОКАНАЛА'));
+ const radar=el('div','zone-radar');radar.setAttribute('aria-hidden','true');radar.append(el('div','radar-center'),el('div','radar-dot'));side.append(radar);
+ const bars=el('div','zone-signal-bars');bars.setAttribute('aria-hidden','true');for(let i=0;i<16;i++){let b=el('i');b.style.setProperty('--bar-h',String(7+(i*11%22))+'px');b.style.setProperty('--bar-d',(0.4+i%5*.17)+'s');b.style.setProperty('--bar-shift',(-i*.085)+'s');bars.append(b)}side.append(bars);
+ function sideRow(label,value,id){let r=el('div','zone-side-line');r.append(el('span','',label));let v=el('strong','',value);if(id)v.id=id;r.append(v);side.append(r)}
+ sideRow('Принято передач',String(zoneState.messages.length),'zone-total');sideRow('Сейчас в ленте','0','zone-shown');sideRow('Режим','ЛОКАЛЬНЫЙ');
+ side.append(el('div','zone-radio-heading','НАСТРОЙКА ПЕРЕДАЧ'));
+ const auto=el('label','zone-switch');let autoCb=el('input');autoCb.type='checkbox';autoCb.id='zone-auto-desktop';autoCb.checked=zoneState.on;autoCb.onchange=()=>{zoneState.on=autoCb.checked;mb.checked=zoneState.on;zoneSave();zoneSchedule()};auto.append(autoCb,el('span','','Автоматические сигналы'));side.append(auto);
+ const rate=el('label','zone-switch');rate.append(el('span','','Интервал'));let select=el('select');for(const [sec,name] of [[25,'25 секунд'],[45,'45 секунд'],[90,'90 секунд']]){let option=el('option','',name);option.value=String(sec);select.append(option)}select.value=String(zoneState.interval);select.onchange=()=>{zoneState.interval=Number(select.value);zoneSave();zoneSchedule()};rate.append(select);side.append(rate);
+ const sound=el('label','zone-switch');let soundCb=el('input');soundCb.type='checkbox';soundCb.checked=zoneState.sound;soundCb.onchange=()=>{zoneState.sound=soundCb.checked;zoneSave();if(soundCb.checked){try{const A=window.AudioContext||window.webkitAudioContext;if(A){zoneSignalSound.ctx=zoneSignalSound.ctx||new A();zoneSignalSound.ctx.resume()}}catch(e){}zoneSignalSound()}};sound.append(soundCb,el('span','','Тихий звуковой сигнал'));side.append(sound);
+ const kindTitle=el('div','zone-radio-heading','КАНАЛЫ СООБЩЕНИЙ');side.append(kindTitle);
+ let kinds=el('div','zone-tools');kinds.style.padding='0';kinds.style.border='0';for(const [key,name] of [['all','Все'],['опасность','Опасности'],['находка','Находки'],['просьба','Помощь'],['быт','Быт'],['эфир','Эфир']]){let b=el('button','zone-tool',name);b.dataset.zoneKind=key;b.type='button';b.setAttribute('aria-pressed',String(zoneState.kind===key));b.onclick=()=>{zoneState.kind=key;zoneDrawFilterButtons();zoneRefreshMessages()};kinds.append(b)}side.append(kinds);
+ let clear=el('button','zone-btn','▤ ОТМЕТИТЬ ВСЁ ПРОЧИТАННЫМ');clear.type='button';clear.onclick=()=>{zoneMarkRead();zoneRefreshMessages()};side.append(clear);
+ side.append(el('p','zone-side-note','Сообщения сохраняются в браузере этого устройства. Сеть не подключается к интернету и не требует регистрации.'));
+ main.append(feed,side);
+ const footer=el('div','zone-status-bar');footer.append(el('span','','◉ АРХИУМ · ИМИТАЦИЯ РАДИОСЕТИ'),el('span','','ТЧ / ЧН / ЗП · ОФЛАЙН'));
+ wrap.append(banner,disclaimer,tools,main,footer);root.append(wrap);
+ zoneDrawFilterButtons();zoneMarkRead();zoneRefreshMessages();
+}
+function zoneDrawFilterButtons(){document.querySelectorAll('[data-zone-game]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.zoneGame===zoneState.filter)));document.querySelectorAll('[data-zone-kind]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.zoneKind===zoneState.kind)))}
+let zoneTimer=null;
+function zoneSchedule(){if(zoneTimer){clearInterval(zoneTimer);zoneTimer=null}if(zoneState.on){zoneTimer=setInterval(()=>{if(document.hidden||!zoneState.on)return;zoneNext(false,true)},zoneState.interval*1000)}}
+if(!zoneState.messages.length){for(let i=0;i<10;i++)zoneNext(false,false); // seed 10 distinct messages with plausible recent timestamps
+ zoneState.messages.forEach((m,i)=>m.time=Date.now()-(i+1)*1000*72);zoneState.seen=zoneState.messages[0].time;zoneSave();}
+zoneUpdateWidgets();zoneSchedule();
+$('zone-preview')?.addEventListener('click',()=>openSection('network'));
+// Ensure the old panel's class does not leak to the support/settings screens.
+const _zoneOriginalOpenSection=openSection;
+openSection=function(cat,opt){if(cat!=='network')$('simple').classList.remove('zone-network-simple');return _zoneOriginalOpenSection(cat,opt)};
+
+// Render start state
+onHome();
+</script>
+<script>
+/* АРХИУМ v3.40 - 30 field instruments. Simulation is separate from canonical material. */
+(() => {
+'use strict';
+const OPS_KEY='pda338_fieldbook';
+const O=(id)=>document.getElementById(id);
+const E=(s)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=s=>String(s||'').toLocaleLowerCase('ru').replaceAll('ё','е');
+const gameNames={'ТЧ':'Тень Чернобыля','ЧН':'Чистое небо','ЗП':'Зов Припяти'};
+const srcs={timeline:'https://cs.stalker-game.com/mainlink/en/?page=chronology',cs:'https://cs.stalker-game.com/en/?page=overview',csworld:'https://cs.stalker-game.com/en/?page=world',soc:'https://soc.stalker-game.com/ru/counter.php?page=overview',cop:'https://cop.stalker-game.com/?page=artifacts'};
+const opts=[
+ ['atlas','Атлас карты','◎','КАРТА','Схемы трёх игр и личные метки'],
+ ['detectors','Детекторы','◉','КАРТА','Тренажёр поиска артефактов'],
+ ['quests','Задания','▤','КАНОН','Ориентиры сюжета и чек-лист'],
+ ['relations','Связи персонажей','⌘','КАНОН','Связанные досье из базы'],
+ ['timeline','Хронология','◷','КАНОН','Даты из официальной хронологии'],
+ ['stashes','Тайники','▣','ЛИЧНОЕ','Мои заметки о тайниках'],
+ ['compare','Сравнение оружия','⚔','КАНОН','Характеристики без выдуманных цифр'],
+ ['upgrades','Мастерская','⚙','КАНОН','Броня, ремонт и апгрейды'],
+ ['traders','Торговцы','✦','КАНОН','Известные торговцы и их досье'],
+ ['bestiary','Бестиарий','☣','КАНОН','15 видов и связь с локациями'],
+ ['fields','Поля аномалий','◈','КАРТА','Где искать аномалии и артефакты'],
+ ['links','Связанные досье','⇄','КАНОН','Поиск пересечений по материалам'],
+ ['notes','Мои заметки','✎','ЛИЧНОЕ','Личные записи в браузере'],
+ ['markers','Метки на карте','⌖','ЛИЧНОЕ','Локальные заметки по координатам'],
+ ['gallery','Галерея','▧','КАНОН','Игровые и авторские изображения отдельно'],
+ ['sources','Проверка источников','✓','КАНОН','Статус данных и первоисточники'],
+ ['spoilers','Антиспойлер','◐','НАСТРОЙКИ','Скрытие сюжетных деталей'],
+ ['commands','Быстрые команды','⌕','НАСТРОЙКИ','Глобальный поиск по Ctrl+K'],
+ ['threads','Переговоры','⌁','СИМУЛЯЦИЯ','Продолжения радиосюжетов'],
+ ['emission','Симулятор выброса','☢','СИМУЛЯЦИЯ','Предупреждение и затемнение КПК'],
+ ['weather','Погода','☂','СИМУЛЯЦИЯ','Дождь, туман и гроза'],
+ ['reputation','Репутация','⚑','СИМУЛЯЦИЯ','Фантазийные отношения фракций'],
+ ['profile','Профиль сталкера','◉','ЛИЧНОЕ','Позывной и оформление'],
+ ['terminals','Секретные терминалы','▣','СИМУЛЯЦИЯ','Небольшие оригинальные загадки'],
+ ['labs','Лаборатории','⌬','КАНОН','Досье лабораторий и объектов'],
+ ['achievements','Достижения','★','ЛИЧНОЕ','Чек-лист игровых целей'],
+ ['trilogy','Сравнить три игры','≡','КАНОН','Различия механик и объектов'],
+ ['sound','Звуки КПК','♫','НАСТРОЙКИ','Звук кнопок и радиосигнала'],
+ ['backup','Офлайн-данные','⇩','ЛИЧНОЕ','Экспорт/импорт своих записей'],
+ ['adventure','История сталкера','➤','СИМУЛЯЦИЯ','Мини-история с решениями']
+];
+const quests=[
+ ['ТЧ','Найти Стрелка','Основная сюжетная цель Меченого; поиск сведений о человеке с позывным Стрелок.','Кордон'],
+ ['ТЧ','Документы Агропрома','Поиск сведений в НИИ «Агропром» и связанных подземных объектах.','Агропром'],
+ ['ТЧ','Выжигатель мозгов','Преодоление пси-защиты на пути к центру Зоны.','Радар'],
+ ['ЧН','Помощь «Чистому небу»','Начальные события и задания на Болотах, знакомство с группировкой.','Болота'],
+ ['ЧН','Преследование Стрелка','Основная сюжетная линия Шрама, связанная с продвижением Стрелка к центру Зоны.','Лиманск'],
+ ['ЗП','Операция «Фарватер»','Расследование крушения военных вертолётов: основная линия майора Дегтярёва.','Затон'],
+ ['ЗП','Логово кровососов','История о кровососах на Затоне.','Затон'],
+ ['ЗП','Три товарища','Дополнительная история персонажей на Затоне.','Затон'],
+ ['ЗП','Заманчивый бизнес','Задание, связанное с поставкой детекторов «Велес».','Затон'],
+ ['ЗП','Путь в Припять','Поиск безопасного маршрута через подземный переход.','Окрестности «Юпитера»']
+];
+const timeline=[
+ ['12 апреля 2006','Появление Зоны','В официальной хронологии первый масштабный аномальный катаклизм датируется 12 апреля 2006 года.'],
+ ['2008','Расширение и аномалии','Новая катастрофа, рост опасных явлений и появление рассказов об опасных существах.'],
+ ['2010','Первые глубокие экспедиции','Сталкеры и исследователи начинают проникать глубже на территорию Зоны.'],
+ ['2011','Войны группировок','Борьба за влияние, опасные выбросы; время истории «Чистого неба».'],
+ ['2012','События ТЧ и ЗП','Основной исторический период «Тени Чернобыля» и «Зова Припяти».']
+];
+const puzzles=[
+ ['Система доступа А-1','Что сталкер бросает впереди себя, проверяя дорогу?', 'болт', 'Введи одно слово.'],
+ ['Терминал исследователя','Как зовут детектор, показывающий артефакты и аномалии в ЗП?', 'сварог','Название из четырёх известных детекторов.'],
+ ['Сейф полевого агента','Как называется баржа на Затоне, ставшая базой сталкеров?', 'скадовск','Место встречи у Бороды.']
+];
+const stories=[
+ ['У разбитой антенны','Ты поймал слабый сигнал у старой вышки. Вдали раздался вой собак.',[
+  ['Проверить сигнал',1],['Обойти вышку',2]]],
+ ['Голос на частоте','На частоте слышен незнакомый голос: «Нужны бинты, я за мостом».', [['Пойти на помощь',3],['Отойти к укрытию',4]]],
+ ['Пустой рюкзак','На тропе находишь пустой рюкзак и свежий след. Дальше путь закрыт аномалиями.',[['Пометить место на карте',4],['Вернуться к вышке',1]]],
+ ['Помощь оказана','Ты передал аптечку незнакомцу. Он благодарит и показывает безопасную тропу. Конец эпизода.',[['Начать сначала',0]]],
+ ['Сигнал потерян','Сигнал затих. Ты отметил находку в дневнике и покинул опасное место. Конец эпизода.',[['Начать сначала',0]]]
+];
+let d={name:'Странник',marks:[],notes:'',stashes:[],quests:[],achievements:[],spoilers:false,weather:'off',emission:false,reputation:{},checklist:{},story:0,sound:false};
+try{const x=JSON.parse(localStorage.getItem(OPS_KEY)||'{}');if(x&&typeof x==='object')d={...d,...x,marks:Array.isArray(x.marks)?x.marks:[],stashes:Array.isArray(x.stashes)?x.stashes:[]}}catch(e){}
+const save=()=>{try{localStorage.setItem(OPS_KEY,JSON.stringify(d))}catch(e){notice('В этом режиме браузер не сохранил данные. Можно продолжить без сохранения.')}};
+
+const QUEST_ARCHIVE=[{"id":"soc-01","game":"ТЧ","title":"Убить Стрелка","area":"Кордон","kind":"Сюжет","desc":"Запись на КПК Меченого запускает поиск человека по прозвищу Стрелок.","steps":["Получить задание после спасения с грузовика смерти","Узнавать о Стрелке по мере продвижения по Зоне"],"person":"Сидорович","item":"","spoiler":true,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-02","game":"ТЧ","title":"Работа для торговца","area":"Кордон","kind":"Сюжет","desc":"Сидорович поручает выручить Шустрого и вернуть флешку с информацией.","steps":["Поговорить с Сидоровичем","Выручить Шустрого из лагеря бандитов","Вернуть флешку торговцу"],"person":"Сидорович","item":"","spoiler":false,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-03","game":"ТЧ","title":"Сведения от Лиса","area":"Кордон","kind":"Сюжет","desc":"Расспросить Лиса о группе Стрелка.","steps":["Найти Лиса рядом с дорогой","Поговорить с ним о Стрелке"],"person":"Лис","item":"","spoiler":false,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-04","game":"ТЧ","title":"Встретиться с Серым","area":"Свалка","kind":"Сюжет","desc":"Цепочка поисков ведёт к сталкерам у ангара на Свалке.","steps":["Добраться до ангара","Помочь отбиться от бандитов и поговорить с Серым"],"person":"Серый","item":"","spoiler":false,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-05","game":"ТЧ","title":"Сведения от Крота","area":"Агропром","kind":"Сюжет","desc":"Крот знает о тайнике группы Стрелка в подземельях Агропрома.","steps":["Добраться до НИИ Агропром","Найти и расспросить Крота"],"person":"Крот","item":"","spoiler":false,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-06","game":"ТЧ","title":"Тайник группы Стрелка","area":"Подземелье Агропрома","kind":"Сюжет","desc":"Поиск подземного убежища группы Стрелка.","steps":["Найти вход в подземные помещения","Отыскать тайник и записи группы"],"person":"Стрелок","item":"","spoiler":true,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-07","game":"ТЧ","title":"Документы военных","area":"Агропром","kind":"Сюжет","desc":"Найти документы в охраняемом научно-исследовательском комплексе.","steps":["Проникнуть в институт","Забрать необходимые документы","Доставить их Бармену"],"person":"Бармен","item":"","spoiler":false,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-08","game":"ТЧ","title":"Документы лаборатории X18","area":"Тёмная долина","kind":"Сюжет","desc":"Для Бармена нужны материалы подземной лаборатории X18.","steps":["Получить доступ к подземной лаборатории","Исследовать X18 и забрать документы","Вернуться к Бармену"],"person":"Бармен","item":"","spoiler":false,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-09","game":"ТЧ","title":"Путь через Дикую территорию","area":"Дикая территория","kind":"Сюжет","desc":"Дорога к Янтарю проходит через опасные промышленные руины.","steps":["Пройти через Дикую территорию","Добраться до лагеря учёных на Янтаре"],"person":"Сахаров","item":"","spoiler":false,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-10","game":"ТЧ","title":"Пси-защита на Янтаре","area":"Янтарь","kind":"Сюжет","desc":"Учёные помогают подготовиться к походу в лабораторию X16.","steps":["Поговорить с Сахаровым","Содействовать исследованию пси-поля","Получить возможность действовать в опасной зоне"],"person":"Сахаров","item":"","spoiler":false,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-11","game":"ТЧ","title":"Лаборатория X16","area":"Янтарь","kind":"Сюжет","desc":"Проникнуть в X16, отключить установку и добыть документы.","steps":["Попасть в лабораторию","Остановить пси-излучение","Отыскать документы и сведения о Призраке"],"person":"Призрак","item":"","spoiler":true,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-12","game":"ТЧ","title":"Встретиться с Проводником","area":"Кордон","kind":"Сюжет","desc":"Сведения из X16 открывают след, ведущий к Проводнику.","steps":["Вернуться на Кордон","Найти Проводника и поговорить с ним"],"person":"Проводник","item":"","spoiler":true,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-13","game":"ТЧ","title":"Встретиться с Доктором","area":"Подземелье Агропрома","kind":"Сюжет","desc":"Продолжение поисков тайны группы Стрелка.","steps":["Вернуться к тайнику Стрелка","Получить сведения от Доктора"],"person":"Доктор","item":"","spoiler":true,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-14","game":"ТЧ","title":"Отключить Выжигатель мозгов","area":"Радар","kind":"Сюжет","desc":"Выжигатель блокирует продвижение сталкеров к центру Зоны.","steps":["Пройти территорию Радара","Проникнуть к установке X19","Отключить источник пси-излучения"],"person":"Бармен","item":"","spoiler":false,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-15","game":"ТЧ","title":"Путь через Припять","area":"Припять","kind":"Сюжет","desc":"После отключения Выжигателя открывается дорога к ЧАЭС.","steps":["Перейти в Припять","Пробиться к выходу на территорию станции"],"person":"Стрелок","item":"","spoiler":true,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-16","game":"ТЧ","title":"Тайник в Припяти","area":"Припять","kind":"Сюжет","desc":"Дополнительная сюжетная линия, связанная с записями Доктора.","steps":["Получить подсказку Доктора","Найти спрятанные сведения в Припяти"],"person":"Доктор","item":"","spoiler":true,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-17","game":"ТЧ","title":"Проникнуть к ЧАЭС","area":"ЧАЭС","kind":"Сюжет","desc":"Финальный путь Меченого к сердцу Зоны.","steps":["Пройти подходы к станции","Найти путь в сооружения станции"],"person":"Стрелок","item":"","spoiler":true,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-18","game":"ТЧ","title":"Тайна Монолита","area":"ЧАЭС","kind":"Сюжет","desc":"Ветка разгадки событий внутри ЧАЭС.","steps":["Исследовать внутренние помещения","Разобраться с тайной Монолита"],"person":"Стрелок","item":"","spoiler":true,"source":["Каталог сюжетных заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_storyline_missions"]},{"id":"soc-19","game":"ТЧ","title":"Найти фамильное ружьё","area":"Дикая территория","kind":"Побочное","desc":"Задание Охотника на поиск фамильного оружия.","steps":["Поговорить с Охотником","Проверить Дикую территорию","Вернуть находку"],"person":"Охотник","item":"","spoiler":false,"source":["Прохождение ТЧ — Zone Survival Guide","https://zsg.dk/Walkthrough_X18.php"]},{"id":"soc-20","game":"ТЧ","title":"Помочь Кроту","area":"Агропром","kind":"Побочное","desc":"Защитить группу сталкеров от военных на территории Агропрома.","steps":["Получить сигнал бедствия","Отбить атаку и поговорить с Кротом"],"person":"Крот","item":"","spoiler":false,"source":["Прохождение Агропрома","https://www.zsg.dk/Walkthrough_Agroprom.php"]},{"id":"soc-21","game":"ТЧ","title":"Освободить долговца","area":"Тёмная долина","kind":"Побочное","desc":"В одной из цепочек Тёмной долины можно помочь захваченному бойцу «Долга».","steps":["Обнаружить пленника","Освободить его от бандитов"],"person":"Долг","item":"","spoiler":false,"source":["Каталог заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_missions"]},{"id":"soc-22","game":"ТЧ","title":"Оборона Барьера","area":"Армейские склады","kind":"Побочное","desc":"Поддержать защитников Барьера от наступления «Монолита».","steps":["Добраться до Барьера","Помочь обороняющимся сталкерам"],"person":"Свобода","item":"","spoiler":false,"source":["Каталог заданий ТЧ","https://stalker.fandom.com/wiki/Category:Shadow_of_Chernobyl_missions"]},{"id":"cs-01","game":"ЧН","title":"Пробуждение Шрама","area":"Болота","kind":"Сюжет","desc":"Шрам приходит в себя на базе «Чистого неба» после выброса.","steps":["Поговорить с Лебедевым","Получить снаряжение и разобраться в ситуации"],"person":"Лебедев","item":"","spoiler":false,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-02","game":"ЧН","title":"Помочь форпосту","area":"Болота","kind":"Сюжет","desc":"На Болотах Шрам обучается выживанию и реагирует на сигнал с форпоста.","steps":["Дойти до форпоста с проводником","Помочь сталкерам и укрыться от выброса"],"person":"Лебедев","item":"","spoiler":false,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-03","game":"ЧН","title":"Укрепить позиции «Чистого неба»","area":"Болота","kind":"Сюжет","desc":"Помощь группировке в борьбе с ренегатами позволяет открыть дорогу наружу.","steps":["Помочь отрядам на Болотах","Захватить подходы к выходу с локации"],"person":"Лебедев","item":"","spoiler":false,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-04","game":"ЧН","title":"Поговорить с Сидоровичем","area":"Кордон","kind":"Сюжет","desc":"Погоня за неизвестным сталкером приводит Шрама к торговцу.","steps":["Добраться до Кордона","Расспросить Сидоровича о деталях преследования"],"person":"Сидорович","item":"","spoiler":false,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-05","game":"ЧН","title":"Дело Халецкого","area":"Кордон","kind":"Сюжет","desc":"Сталкеры помогают добыть информацию через военного командира.","steps":["Встретиться с лидером сталкеров","Разобраться с военными у склада","Получить сведения о нужном грузе"],"person":"Халецкий","item":"","spoiler":false,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-06","game":"ЧН","title":"По следам Клыка","area":"Свалка","kind":"Сюжет","desc":"Квесты с копателями позволяют выйти на след Клыка.","steps":["Отыскать сведения у копателей","Проверить след Клыка","Отправиться в Тёмную долину"],"person":"Клык","item":"","spoiler":false,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-07","game":"ЧН","title":"Расследование на базе «Свободы»","area":"Тёмная долина","kind":"Сюжет","desc":"Шрам ищет сведения о Клыке и раскрывает обстоятельства нападения на бойцов группировки.","steps":["Найти базу «Свободы»","Выполнить поручения и изучить найденные КПК","Поговорить с Чеховым"],"person":"Чехов","item":"","spoiler":false,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-08","game":"ЧН","title":"Тайник группы Стрелка","area":"Подземелье Агропрома","kind":"Сюжет","desc":"След Клыка ведёт к подземному тайнику группы Стрелка.","steps":["Поговорить с генералом Крыловым","Спуститься в подземелья Агропрома","Найти записи группы"],"person":"Крылов","item":"","spoiler":true,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-09","game":"ЧН","title":"Затопить подземелья Агропрома","area":"Подземелье Агропрома","kind":"Сюжет","desc":"Задание «Долга» на снижение угрозы мутантов из подземелий.","steps":["Найти насосную станцию","Запустить затопление","Выбраться из подземелий"],"person":"Крылов","item":"","spoiler":false,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-10","game":"ЧН","title":"Исследование пси-поля на Янтаре","area":"Янтарь","kind":"Сюжет","desc":"Сахарову нужны данные об источнике пси-излучения.","steps":["Поговорить с Сахаровым","Отыскать документы сталкеров","Вернуть сведения учёному"],"person":"Сахаров","item":"","spoiler":false,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-11","game":"ЧН","title":"Помочь группе Левши","area":"Янтарь","kind":"Сюжет","desc":"Защитить сталкеров при работе с установкой у завода.","steps":["Встретить отряд Левши","Пробиться к заводу","Прикрывать отряд во время работы"],"person":"Левша","item":"","spoiler":false,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-12","game":"ЧН","title":"Найти пространственную аномалию","area":"Рыжий лес","kind":"Сюжет","desc":"Путь к Леснику проходит через опасную аномальную область.","steps":["Откликнуться на сигнал в Рыжем лесу","Получить данные КПК","Найти аномальный проход"],"person":"Лесник","item":"","spoiler":false,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-13","game":"ЧН","title":"Вернуть артефакт «Компас»","area":"Рыжий лес","kind":"Сюжет","desc":"Лесник просит вернуть уникальный артефакт, необходимый для следующего этапа истории.","steps":["Разыскать похищенный «Компас»","Принести артефакт Леснику"],"person":"Лесник","item":"Компас","spoiler":false,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-14","game":"ЧН","title":"Связь с наёмниками","area":"Армейские склады","kind":"Сюжет","desc":"Необходимо использовать мощный передатчик для помощи группе, попавшей в пространственную ловушку.","steps":["Уточнить координаты","Добраться до военной базы","Передать необходимые данные"],"person":"Лесник","item":"","spoiler":false,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-15","game":"ЧН","title":"Мост в Лиманск","area":"Рыжий лес","kind":"Сюжет","desc":"Группа «Чистого неба» готовится открыть переход в Лиманск.","steps":["Встретиться с Лебедевым","Поддержать бойцов у моста","Обеспечить продвижение отряда"],"person":"Лебедев","item":"","spoiler":false,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-16","game":"ЧН","title":"Пройти через Лиманск","area":"Лиманск","kind":"Сюжет","desc":"Шрам преследует Стрелка через полуразрушенный город.","steps":["Пробиться через городские кварталы","Обойти укреплённые позиции","Добраться до госпиталя"],"person":"Стрелок","item":"","spoiler":false,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-17","game":"ЧН","title":"Заброшенный госпиталь","area":"Госпиталь","kind":"Сюжет","desc":"Путь к ЧАЭС проходит через госпиталь, где на пути группы стоят противники.","steps":["Пробиться через госпиталь","Открыть дальнейший проход"],"person":"Лебедев","item":"","spoiler":false,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-18","game":"ЧН","title":"Остановить Стрелка","area":"ЧАЭС","kind":"Сюжет","desc":"Финальная операция Шрама и «Чистого неба».","steps":["Добраться до станции","Выполнить задачу Лебедева"],"person":"Стрелок","item":"","spoiler":true,"source":["Сюжетные задания ЧН","https://stalker.fandom.com/wiki/Main_Missions_in_Clear_Sky"]},{"id":"cs-19","game":"ЧН","title":"Война группировок","area":"Свалка","kind":"Побочное","desc":"Игрок может участвовать в противостояниях группировок; детали зависят от стороны.","steps":["Познакомиться с доступными группировками","Выбрать сторону, если хочешь участвовать","Помогать своим отрядам"],"person":"Свобода","item":"","spoiler":false,"source":["Справочник ЧН: войны группировок","https://support.stalker-game.com/en-US/kb/article/129/factions-and-side-quests-the-choice-that-shapes-the-zone"]},{"id":"cs-20","game":"ЧН","title":"Флешки для техников","area":"Болота","kind":"Побочное","desc":"В «Чистом небе» техники используют флешки с данными об улучшениях.","steps":["Найти флешку с информацией","Передать её подходящему технику"],"person":"Новиков","item":"","spoiler":false,"source":["ЧН — прохождение","https://www.trueachievements.com/game/stalker-clear-sky/walkthrough"]},{"id":"cop-01","game":"ЗП","title":"Операция «Фарватер»","area":"Затон","kind":"Сюжет","desc":"Дегтярёв расследует судьбу вертолётов военной операции.","steps":["Изучить места крушения","Собирать сведения для объяснения провала операции"],"person":"Дегтярёв","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-02","game":"ЗП","title":"«Скат-5»: место падения","area":"Затон","kind":"Сюжет","desc":"Осмотр одного из вертолётов на Затоне.","steps":["Найти место падения «Скат-5»","Изучить следы и информацию о катастрофе"],"person":"Дегтярёв","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-03","game":"ЗП","title":"«Скат-2»: место падения","area":"Затон","kind":"Сюжет","desc":"Расследование ещё одного места крушения.","steps":["Обнаружить «Скат-2»","Изучить найденные данные"],"person":"Дегтярёв","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-04","game":"ЗП","title":"«Скат-3»: место падения","area":"Затон","kind":"Сюжет","desc":"Поиск военной машины и сведений об операции.","steps":["Добраться к «Скат-3»","Осмотреть вертолёт"],"person":"Дегтярёв","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-05","game":"ЗП","title":"«Скат-1» и «Скат-4»","area":"Окрестности «Юпитера»","kind":"Сюжет","desc":"Продолжение расследования на территории Юпитера.","steps":["Осмотреть доступные места крушения","Связать сведения из разных вертолётов"],"person":"Дегтярёв","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-06","game":"ЗП","title":"Карты местности","area":"Затон","kind":"Сюжет","desc":"Изучение карт из военного вертолёта помогает установить направление поиска.","steps":["Забрать материалы в зоне крушения","Использовать сведения при дальнейшем расследовании"],"person":"Дегтярёв","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-07","game":"ЗП","title":"Путь в Припять","area":"Окрестности «Юпитера»","kind":"Сюжет","desc":"Поиск пути в Припять через подземные коммуникации завода.","steps":["Получить данные о маршруте","Найти доступ к подземному проходу","Подготовиться к переходу"],"person":"Зулус","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-08","game":"ЗП","title":"Подземный переход «Припять-1»","area":"Окрестности «Юпитера»","kind":"Сюжет","desc":"Переход в Припять с отрядом спутников.","steps":["Собрать доступную группу","Пройти подземный маршрут","Выбраться в Припять"],"person":"Зулус","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-09","game":"ЗП","title":"Неизвестное оружие","area":"Припять","kind":"Сюжет","desc":"Расследование необычного оружия, обнаруженного по ходу сюжета.","steps":["Узнать подробности о найденном оружии","Продолжить расследование его происхождения"],"person":"Ковальский","item":"Гаусс-пушка","spoiler":true,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-10","game":"ЗП","title":"Лаборатория X8","area":"Припять","kind":"Сюжет","desc":"Поиск документов исследовательской лаборатории в Припяти.","steps":["Получить доступ к X8","Исследовать лабораторию","Забрать документы"],"person":"Ковальский","item":"","spoiler":true,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-11","game":"ЗП","title":"Радиопомехи","area":"Припять","kind":"Сюжет","desc":"Поиск источника помех военной связи в Припяти.","steps":["Проверить источник нестабильной связи","Устранить препятствие выполнению операции"],"person":"Ковальский","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-12","game":"ЗП","title":"Пропавший разведотряд","area":"Припять","kind":"Сюжет","desc":"Поиск разведывательной группы на территории Припяти.","steps":["Получить информацию о пропаже","Проверить место происшествия"],"person":"Ковальский","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-13","game":"ЗП","title":"Эвакуация","area":"Припять","kind":"Сюжет","desc":"Финальная часть операции по эвакуации.","steps":["Подготовиться к эвакуации","Принять решение о дальнейших действиях"],"person":"Ковальский","item":"","spoiler":true,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-14","game":"ЗП","title":"Логово кровососов","area":"Затон","kind":"Побочное","desc":"Местные сталкеры подозревают присутствие опасных мутантов.","steps":["Получить сведения о кровососах","Обнаружить логово и сообщить об опасности"],"person":"Глухарь","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-15","game":"ЗП","title":"Исчезнувшие сталкеры","area":"Затон","kind":"Побочное","desc":"Расследование исчезновения людей на Затоне.","steps":["Поговорить с Глухарём","Изучить найденные следы пропажи"],"person":"Глухарь","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-16","game":"ЗП","title":"Три товарища","area":"Затон","kind":"Побочное","desc":"Линия поисков пропавших товарищей Кардана.","steps":["Поговорить с Карданом","Выяснить судьбу пропавших сталкеров"],"person":"Кардан","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-17","game":"ЗП","title":"Заманчивый бизнес","area":"Затон","kind":"Побочное","desc":"Сделка с детекторами «Велес» и участниками торговой цепочки.","steps":["Получить информацию о сделке","Разобраться с поставкой детекторов"],"person":"Сыч","item":"Велес","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-18","game":"ЗП","title":"Оазис","area":"Окрестности «Юпитера»","kind":"Побочное","desc":"Поиски легендарного места и необычного артефакта.","steps":["Узнать о легенде Оазиса","Найти путь к необычной локации"],"person":"Озёрский","item":"Сердце Оазиса","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-19","game":"ЗП","title":"Земляк / Сорока","area":"Затон","kind":"Побочное","desc":"Разыскать сталкера, известного как Сорока; его история связана с предательством отряда.","steps":["Получить сведения о Сороке","Сопоставить показания других сталкеров"],"person":"Гонта","item":"","spoiler":true,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-20","game":"ЗП","title":"Выжившие «Монолита»","area":"Окрестности «Юпитера»","kind":"Побочное","desc":"Судьба отряда бывших монолитовцев зависит от того, кто сможет им помочь.","steps":["Познакомиться с отрядом","Найти возможность договориться о их размещении"],"person":"Бродяга","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-21","game":"ЗП","title":"Инструменты для механиков","area":"Затон","kind":"Побочное","desc":"Техникам нужны наборы инструментов для полноценной работы.","steps":["Расспросить механиков об инструментах","Найти подходящие комплекты"],"person":"Кардан","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-22","game":"ЗП","title":"Охота на химеру","area":"Затон","kind":"Побочное","desc":"Поиск и устранение опасной химеры по просьбе охотников.","steps":["Получить поручение охотника","Выследить опасного мутанта"],"person":"Гонта","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-23","game":"ЗП","title":"Компас","area":"Затон","kind":"Побочное","desc":"Уникальный артефакт становится предметом интереса нескольких сталкеров.","steps":["Получить сведения о владельце артефакта","Выполнить связанные с ним поручения"],"person":"Ной","item":"Компас","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-24","game":"ЗП","title":"Необычное явление","area":"Затон","kind":"Побочное","desc":"Задание по исследованию аномального явления на Затоне.","steps":["Получить поручение","Изучить источник явления"],"person":"Борода","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-25","game":"ЗП","title":"Разведка аномалий","area":"Окрестности «Юпитера»","kind":"Побочное","desc":"Учёные исследуют свойства аномальных зон и нуждаются в помощи.","steps":["Поговорить с учёными","Помочь с полевыми исследованиями"],"person":"Герман","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]},{"id":"cop-26","game":"ЗП","title":"Исследование пси-поля","area":"Окрестности «Юпитера»","kind":"Побочное","desc":"Научные экспедиции исследуют опасные пси-явления.","steps":["Получить задание учёных","Проверить указанную аномальную область"],"person":"Герман","item":"","spoiler":false,"source":["Каталог заданий ЗП","https://stalker.fandom.com/wiki/Category:Call_of_Pripyat_missions"]}];
+const qLabels={new:'НЕ НАЧАТО',active:'В ПРОЦЕССЕ',done:'ПРОЙДЕНО'};
+let qUi={game:'ВСЕ',kind:'ВСЕ',status:'ВСЕ',search:'',selected:'soc-01'};
+if(!d.questStates||typeof d.questStates!=='object'||Array.isArray(d.questStates)){
+ d.questStates={};
+ const oldMapping=['soc-01','soc-07','soc-14','cs-02','cs-18','cop-01','cop-14','cop-16','cop-17','cop-07'];
+ for(const index of (Array.isArray(d.quests)?d.quests:[])){const key=oldMapping[Number(index)];if(key)d.questStates[key]='done'}
+ save();
+}
+function questStatus(id){return ['new','active','done'].includes(d.questStates[id])?d.questStates[id]:'new'}
+function questTitle(q){return d.spoilers&&q.spoiler?'Сюжетное задание — скрыто':q.title}
+function qResults(){const key=norm(qUi.search).trim();return QUEST_ARCHIVE.filter(q=>(qUi.game==='ВСЕ'||qUi.game===q.game)&&(qUi.kind==='ВСЕ'||qUi.kind===q.kind)&&(qUi.status==='ВСЕ'||qUi.status===questStatus(q.id))&&(!key||norm([q.title,q.area,q.desc,q.person,q.item,q.game].join(' ')).includes(key)))}
+function questTemplate(){const q=QUEST_ARCHIVE,passed=q.filter(x=>questStatus(x.id)==='done').length,active=q.filter(x=>questStatus(x.id)==='active').length;
+ const percent=Math.round(100*passed/q.length);
+ return `<div class="ops-q-head"><div><span class="ops-q-kicker">▤ АРХИУМ / ПОЛЕВОЙ ЖУРНАЛ</span><h3>Журнал заданий трилогии</h3><p>${q.length} проверяемых сюжетных этапов и побочных поручений из оригинальных игр. Это справочник и твой личный офлайн-чек-лист, не синхронизация с сохранениями игры.</p></div><div class="ops-q-metrics" id="ops-q-metrics"><b><span data-q-num="done">${passed}</span><small>ПРОЙДЕНО</small></b><b><span data-q-num="active">${active}</span><small>В ПРОЦЕССЕ</small></b><b>${q.length}<small>В КАТАЛОГЕ</small></b></div></div>
+ <div class="ops-q-progress"><div id="ops-q-progress-value" style="width:${percent}%"></div></div><small class="ops-q-progress-label" id="ops-q-progress-label">Личный прогресс: ${percent}%</small>
+ <div class="ops-q-filters"><div class="ops-q-gametabs" id="ops-q-gametabs">${['ВСЕ','ТЧ','ЧН','ЗП'].map(g=>`<button type="button" data-q-game="${g}" class="${qUi.game===g?'sel':''}">${g}</button>`).join('')}</div>
+ <input class="ops-input" id="ops-q-search" type="search" placeholder="Поиск задания, локации, персонажа…" aria-label="Поиск заданий" value="${E(qUi.search)}"/>
+ <select id="ops-q-kind" aria-label="Тип задания"><option value="ВСЕ">ВСЕ ТИПЫ</option><option value="Сюжет">СЮЖЕТ</option><option value="Побочное">ПОБОЧНЫЕ</option></select>
+ <select id="ops-q-status" aria-label="Статус прохождения"><option value="ВСЕ">ВСЕ СТАТУСЫ</option><option value="new">НЕ НАЧАТО</option><option value="active">В ПРОЦЕССЕ</option><option value="done">ПРОЙДЕНО</option></select></div>
+ <div id="ops-q-view" class="ops-q-view"><div class="ops-q-list" id="ops-q-list" aria-label="Задания"></div><div class="ops-q-details" id="ops-q-details" aria-live="polite"></div></div>
+ <div class="ops-q-legend">Данные по заданиям — краткие авторские пересказы, без выдуманных наград. Названия некоторых карточек обозначают сюжетный этап, а не дословный текст игрового задания. Источник указан в каждом досье. Сюжетные детали скрываются в антиспойлерном режиме.</div>`}
+function drawQuests(){const el=O('ops-q-view');if(!el)return;const found=qResults(), ids=new Set(found.map(x=>x.id));if(!ids.has(qUi.selected))qUi.selected=found[0]?.id||'';
+ O('ops-q-list').innerHTML=found.length?found.map((q,i)=>`<button type="button" class="ops-q-listitem ${q.id===qUi.selected?'selected':''}" data-q-open="${E(q.id)}" aria-current="${q.id===qUi.selected?'true':'false'}"><span class="ops-q-index">${String(i+1).padStart(2,'0')}</span><span class="ops-q-listtxt"><b>${E(questTitle(q))}</b><small>${E(q.area)} · ${E(q.kind)}</small></span><span class="ops-q-state ${questStatus(q.id)}">${questStatus(q.id)==='done'?'✓':questStatus(q.id)==='active'?'◷':'•'}</span></button>`).join(''):'<div class="ops-q-empty">Ничего не найдено. Попробуй изменить фильтры.</div>';
