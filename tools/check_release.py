@@ -23,19 +23,19 @@ except UnicodeDecodeError:
     sys.exit("Ошибка: HTML не в UTF-8")
 
 errors, warnings = [], []
-title_match = re.search(r"<title\\b[^>]*>(.*?)</title\\s*>", content, re.I | re.S)
+title_match = re.search(r"<title\b[^>]*>(.*?)</title\s*>", content, re.I | re.S)
 title = unescape(re.sub(r"<[^>]*>", "", title_match.group(1))).strip() if title_match else ""
 if not title:
     errors.append("Отсутствует заголовок <title>")
-if args.version and not re.search(r"(?<!\\d)v?" + re.escape(args.version) + r"(?!\\d)", title, re.I):
+if args.version and not re.search(r"(?<!\d)v?" + re.escape(args.version) + r"(?!\d)", title, re.I):
     errors.append("Номер версии не совпадает с заголовком")
-if not re.search(r"<meta\\s+name=[\"']viewport[\"']", content, re.I):
+if not re.search(r"<meta\s+name=[\"']viewport[\"']", content, re.I):
     warnings.append("Не найден meta viewport")
-if re.search(r"(?<!\\w)(?:контур|kontur)(?!\\w)", content, re.I):
+if re.search(r"(?<!\w)(?:контур|kontur)(?!\w)", content, re.I):
     errors.append("Найдено упоминание удалённого модуля «КОНТУР»")
 if len(raw) > args.max_mib * 1024 ** 2:
     warnings.append("Большой HTML; изображения желательно выносить постепенно")
-if not re.search(r"<html\\b", content, re.I) or not re.search(r"</html\\s*>", content, re.I):
+if not re.search(r"<html\b", content, re.I) or not re.search(r"</html\s*>", content, re.I):
     errors.append("Неполная HTML-структура")
 print(f"Файл: {args.html.name}")
 print(f"Размер: {len(raw)/1024**2:.2f} МиБ")
