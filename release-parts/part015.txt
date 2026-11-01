@@ -1,0 +1,500 @@
+  'Для первой экспедиции удобно фиксировать собственные открытия, не открывая заранее все материалы.'
+ ]],
+ ['Задания','Система личных отметок','Связь между архивом и личной историей',[
+  'Сохраняйте место, короткий комментарий и цель в «Личных метках».',
+  'В разделе «Разведка» находите архивное досье по ключевому названию и переходите в полный материал.',
+  'В «Экспедициях» оставляйте итог, чтобы не терять цепочку собственных действий.'
+ ]],
+ ['Исследование','Сверка трёх игр','ТЧ, ЧН и ЗП — разные наборы условий',[
+  '«Тень Чернобыля» вводит в историю Меченого. «Чистое небо» предшествует ей и делает акцент на группировках. «Зов Припяти» продолжает мир после событий первой игры.',
+  'Одинаковые термины не гарантируют одинаковую механику. Выбирайте правильный игровой фильтр.',
+  'При сомнении открывайте несколько досье, а затем смотрите официальный источник, если он указан.'
+ ]],
+ ['Исследование','Архив и первоисточники','Как оценивать надёжность заметки',[
+  'Отделяйте подтверждённые сведения из игры от обобщений, художественных дополнений и собственных наблюдений.',
+  'Особенно тщательно проверяйте числа: характеристики оружия, процент защиты, шанс появления предмета и координаты.',
+  'В этом терминале новые полевые протоколы отмечены как авторские советы, а имитационные системы не выдают себя за игровой телеметрический канал.'
+ ]],
+ ['Исследование','Фиксация неизвестного','Запись вместо догадки',[
+  'Если предмет, персонаж или аномалия не найден в базе, запишите название и наблюдения в личном журнале.',
+  'Оставьте игровую часть и локацию, чтобы при следующем исследовании можно было уточнить запись.',
+  'Не заполняйте отсутствующие характеристики случайными значениями.'
+ ]],
+ ['Терминал','Сохранение данных','Устройство работает локально',[
+  'Справочник и визуальные материалы упакованы в HTML и доступны без подключения к интернету.',
+  'Личные данные хранятся в браузере на конкретном устройстве. В приватном режиме или после очистки сайта они могут пропасть.',
+  'Регулярно экспортируйте резервную копию, особенно перед переносом ПДА на другой телефон или компьютер.'
+ ]],
+ ['Терминал','Резервное восстановление','Что содержит экспорт',[
+  'Резервная копия сохраняет настройки и персональные записи Полевого центра. В расширенной копии можно сохранить и ключевые локальные данные старого ПДА.',
+  'Перед восстановлением проверьте, что выбран именно JSON, экспортированный из вашего ПДА.',
+  'Импорт всегда требует подтверждения, так как заменяет соответствующие локальные записи.'
+ ]],
+ ['Терминал','Настройки изображения','Баланс атмосферы и скорости',[
+  'Если анимации нагружают телефон, откройте настройки ПДА и используйте сбалансированный режим либо отключите эффекты.',
+  'Крупные справочники удобнее читать в горизонтальном положении экрана или с уменьшенной анимацией.',
+  'Режим уменьшенной анимации операционной системы учитывается оформлением терминала.'
+ ]]
+];
+const V41_GUIDE_RECORDS=V41_GUIDES.map((g,i)=>({id:'V41-GUIDE-'+String(i+1).padStart(3,'0'),cat:'knowledge',topic:g[0],name:g[1],kind:'Полевой протокол / авторский совет',short:g[2],body:g[3],detail:g[3].join('\n\n'),games:g[0]==='Группировки'&&i===16?'ЧН':'ТЧ, ЧН, ЗП',tags:['Полевой протокол',g[0]],sources:[],spoiler:false}));
+for(const item of V41_GUIDE_RECORDS){if(!catalogue().some(x=>x.id===item.id))catalogue().push(item)}
+const V41_LABELS={factions:'Группировки',characters:'Персонажи',locations:'Локации',weapons:'Оружие',suits:'Костюмы',artifacts:'Артефакты',mutants:'Мутанты',anomalies:'Аномалии',gear:'Снаряжение',knowledge:'База знаний'};
+function v41Jump(x){if(!x)return;close();if(typeof openSection==='function'&&typeof selectEntry==='function'){openSection(x.cat,{game:'all'});selectEntry(x.id,true);data.history.unshift({id:x.id,name:x.name,time:Date.now()});data.history=data.history.slice(0,30);persist()}}
+function atlas(){
+ let category='all',gameFilter='all',term='',offset=0;
+ html(`<div class="v4-card"><h3>АТЛАС АРХИВА</h3><p class="v4-muted">Объединённый каталог. Материалы отбираются по разделу, игре и названию. Полевые протоколы — авторские советы, отдельно от канона.</p><div class="v41-stats">${Object.entries(V41_LABELS).map(([k,v])=>`<button data-v41-cat="${k}"><b>${catalogue().filter(x=>x.cat===k).length}</b><small>${v}</small></button>`).join('')}</div><div class="v4-row"><input id="v41-atlas-q" placeholder="Название, теги, описание…" aria-label="Поиск по атласу"><select id="v41-atlas-cat"><option value="all">Все разделы</option>${Object.entries(V41_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select><select id="v41-atlas-game"><option value="all">Вся трилогия</option><option value="ТЧ">ТЧ</option><option value="ЧН">ЧН</option><option value="ЗП">ЗП</option></select></div><div id="v41-atlas-count" class="v4-badge"></div><div id="v41-atlas-results"></div><button id="v41-more" type="button">ПОКАЗАТЬ ЕЩЁ</button></div>`);
+ const body=$('v41-atlas-results');
+ function matchesGame(x){return gameFilter==='all'||!x.games||x.games.split(/[,;]+/).map(t=>t.trim()).includes(gameFilter)}
+ function refresh(){const hits=catalogue().filter(x=>(category==='all'||x.cat===category)&&matchesGame(x)&&(!term||normalize([x.name,x.short,x.detail,...(x.body||[]),...(x.tags||[])].join(' ')).includes(term)));$('v41-atlas-count').textContent=`НАЙДЕНО ${hits.length} / ${catalogue().length}`;body.innerHTML=hits.slice(0,offset+40).map(x=>`<div class="v4-entry"><span><b>${escape(x.name)}</b><br><small class="v4-muted">${escape(V41_LABELS[x.cat]||x.cat)} · ${escape(x.games||'часть не уточнена')} · ${escape(String(x.short||'').slice(0,130))}</small></span><button data-v41-open="${escape(x.id)}">ДОСЬЕ</button></div>`).join('')||'<p class="v4-muted">Материалов по этим условиям не найдено.</p>';$('v41-more').hidden=hits.length<=offset+40;}
+ $('v41-atlas-q').oninput=e=>{term=normalize(e.target.value.trim());offset=0;refresh()};$('v41-atlas-cat').onchange=e=>{category=e.target.value;offset=0;refresh()};$('v41-atlas-game').onchange=e=>{gameFilter=e.target.value;offset=0;refresh()};$('v41-more').onclick=()=>{offset+=40;refresh()};content.querySelector('.v41-stats').onclick=e=>{const b=e.target.closest('[data-v41-cat]');if(!b)return;category=b.dataset.v41Cat;$('v41-atlas-cat').value=category;offset=0;refresh()};body.onclick=e=>{const b=e.target.closest('[data-v41-open]');if(b)v41Jump(catalogue().find(x=>x.id===b.dataset.v41Open))};refresh();
+}
+function relations(){
+ const anomalies=catalogue().filter(x=>x.cat==='anomalies'&&x.anomalyByGame);let selectedAnomaly=anomalies[0],g='ТЧ';
+ html(`<div class="v4-card"><h3>СВЯЗИ: АНОМАЛИЯ → МЕСТО → АРТЕФАКТ</h3><p class="v4-muted">Связи извлекаются из существующего архива аномалий; указанные предметы не являются гарантированной добычей.</p><div class="v4-row"><select id="v41-anomaly" aria-label="Выберите аномалию">${anomalies.map(x=>`<option value="${escape(x.id)}">${escape(x.name)}</option>`).join('')}</select><select id="v41-relation-game"><option>ТЧ</option><option>ЧН</option><option>ЗП</option></select><button id="v41-open-anomaly">ДОСЬЕ АНОМАЛИИ</button></div><div id="v41-relation-result"></div></div>`);
+ const exact=(cat,name)=>catalogue().find(x=>x.cat===cat&&normalize(x.name)===normalize(name))||(cat==='locations'?catalogue().filter(x=>x.cat==='locations'&&normalize(name).startsWith(normalize(x.name)+':')).sort((a,b)=>b.name.length-a.name.length)[0]:null);
+ function row(kind,name,found){return `<div class="v4-entry"><span><small class="v4-badge">${kind}</small><br>${escape(name)}</span>${found?`<button data-v41-link="${escape(found.id)}">ОТКРЫТЬ</button>`:'<span class="v4-muted">Общая отметка, без отдельного досье</span>'}</div>`}
+ function draw(){const d=selectedAnomaly?.anomalyByGame?.[g];$('v41-relation-result').innerHTML=d?`<div class="v4-grid"><section class="v4-card"><h3>МЕСТА НАХОДОК · ${g}</h3>${(d.locations||[]).map(n=>row('ЛОКАЦИЯ',n,exact('locations',n))).join('')||'<p>Нет записи.</p>'}</section><section class="v4-card"><h3>СВЯЗАННЫЕ АРТЕФАКТЫ</h3>${(d.artifacts||[]).map(n=>row('АРТЕФАКТ',n,exact('artifacts',n))).join('')||'<p>Не подтверждены.</p>'}</section></div><p class="v4-alert">${escape(d.note||'Сведения относятся к выбранной части игры.')}</p>`:'<p class="v4-alert">Для этой части игры в архиве нет подтверждённой связи.</p>'}
+ $('v41-anomaly').onchange=e=>{selectedAnomaly=anomalies.find(x=>x.id===e.target.value);draw()};$('v41-relation-game').onchange=e=>{g=e.target.value;draw()};$('v41-open-anomaly').onclick=()=>v41Jump(selectedAnomaly);$('v41-relation-result').onclick=e=>{const b=e.target.closest('[data-v41-link]');if(b)v41Jump(catalogue().find(x=>x.id===b.dataset.v41Link))};draw();
+}
+function fieldguide(){
+ let topic='Все',term='';const topics=['Все',...new Set(V41_GUIDES.map(g=>g[0]))];
+ html(`<div class="v4-card"><h3>ПОЛЕВОЙ ГИД · ${V41_GUIDES.length} ПРОТОКОЛОВ</h3><p class="v4-muted">Авторские практические заметки. Не являются цитатами игры и не подменяют первоисточники.</p><div class="v4-row"><select id="v41-topic">${topics.map(t=>`<option>${escape(t)}</option>`).join('')}</select><input id="v41-guide-q" placeholder="Поиск по протоколам" aria-label="Поиск протокола"></div><div id="v41-guide-list"></div><p class="v4-muted">Для сверки: <a href="https://www.stalker-game.com/" target="_blank" rel="noopener noreferrer">официальный сайт трилогии</a> и <a href="https://cs.stalker-game.com/mainlink/en/?page=world" target="_blank" rel="noopener noreferrer">архив GSC об устройстве Зоны</a>. Ссылки открываются только по нажатию и требуют интернета.</p></div>`);
+ function draw(){const guides=V41_GUIDE_RECORDS.filter(x=>(topic==='Все'||x.topic===topic)&&(!term||normalize([x.name,x.short,...x.body].join(' ')).includes(term)));$('v41-guide-list').innerHTML=guides.map(x=>`<details class="v41-guide"><summary><b>${escape(x.name)}</b><small>${escape(x.topic)} · ${escape(x.short)}</small></summary>${x.body.map(p=>`<p>${escape(p)}</p>`).join('')}<button data-v41-guide="${escape(x.id)}">ОТКРЫТЬ В ОБЩЕМ АРХИВЕ</button></details>`).join('')||'<p>Нет совпадений.</p>'}
+ $('v41-topic').onchange=e=>{topic=e.target.value;draw()};$('v41-guide-q').oninput=e=>{term=normalize(e.target.value.trim());draw()};$('v41-guide-list').onclick=e=>{const b=e.target.closest('[data-v41-guide]');if(b)v41Jump(catalogue().find(x=>x.id===b.dataset.v41Guide))};draw();
+}
+function scanner(){
+ const anomalies=catalogue().filter(x=>x.cat==='anomalies'&&x.anomalyByGame);let n=0;
+ html(`<div class="v4-grid"><section class="v4-card"><h3>ИМИТАТОР ПОЛЕВОГО СКАНЕРА</h3><div class="v41-scan" aria-hidden="true"><div class="v41-scan-sweep"></div><b>◉</b></div><p class="v4-muted">Не связан с игрой, GPS или реальными измерительными приборами. Случайная учебная сводка из базы аномалий.</p><div class="v4-row"><select id="v41-scan-game"><option>ТЧ</option><option>ЧН</option><option>ЗП</option></select><button id="v41-scan-start">СКАНИРОВАТЬ АРХИВ</button></div></section><section class="v4-card"><h3>ПРОТОКОЛ НАБЛЮДЕНИЯ</h3><div id="v41-scan-report" aria-live="polite">Ожидание команды…</div></section></div>`);
+ $('v41-scan-start').onclick=()=>{const g=$('v41-scan-game').value;const pool=anomalies.filter(x=>x.anomalyByGame?.[g]);if(!pool.length){$('v41-scan-report').textContent='Нет доступных записей.';return}const x=pool[Math.floor(Math.random()*pool.length)],d=x.anomalyByGame[g];n++;$('v41-scan-report').innerHTML=`<div class="v4-badge">ОБУЧАЮЩИЙ СЕАНС № ${n} · ${g}</div><h3>${escape(x.name)}</h3><p>${escape(x.short)}</p><p><b>Отмеченные районы:</b> ${escape((d.locations||[]).join('; ')||'Не указаны')}</p><p><b>Связанные артефакты:</b> ${escape((d.artifacts||[]).join(', ')||'Не подтверждены')}</p><p class="v4-alert">${escape(d.note||'Сведения из локального архива.')}</p><button id="v41-scan-dossier">ОТКРЫТЬ ДОСЬЕ</button>`;$('v41-scan-dossier').onclick=()=>v41Jump(x)};
+}
+/* Backup v2 handles both field-center data and optional legacy settings. */
+const V41_CORE_KEYS=['pda326_favorites','pda326_journal','pda326_settings','pda337_radio','pda338_fieldbook','pda340_global_map_marks','pda_v44_atlas_notes','pda_v45_faction_notes','pda_v46_quest_progress','pda_v47_step_log','pda_v48_faction_alignments','pda_v50_people_marks','pda_v51_squad_notes','pda_v60_field_journal','pda_v61_faction_notes'];
+function v41CleanData(x){
+ if(!x||typeof x!=='object'||Array.isArray(x))throw Error('Отсутствуют личные данные');
+ const str=(v,n=5000)=>typeof v==='string'?v.slice(0,n):'';
+ const arr=(v,n=400)=>Array.isArray(v)?v.slice(0,n):[];
+ return {
+  callSign:str(x.callSign,40)||'Странник',faction:str(x.faction,60)||'Одиночки',profileNotes:str(x.profileNotes,5000),
+  inventory:arr(x.inventory).filter(z=>z&&typeof z==='object').map(z=>({id:str(z.id,100),name:str(z.name,180),cat:str(z.cat,40)})),
+  missions:arr(x.missions).filter(z=>z&&typeof z==='object').map(z=>({title:str(z.title,120),place:str(z.place,100),note:str(z.note,2000),done:z.done===true})),
+  marks:arr(x.marks).filter(z=>z&&typeof z==='object').map(z=>({place:str(z.place,120),text:str(z.text,300)})),
+  history:arr(x.history,30).filter(z=>z&&typeof z==='object').map(z=>({id:str(z.id,100),name:str(z.name,180),time:Number.isFinite(z.time)?z.time:Date.now()})),
+  warnings:true
+ };
+}
+backup=function(){
+ html(`<div class="v4-grid"><section class="v4-card"><h3>РЕЗЕРВНЫЕ КОПИИ · v2</h3><p>Сохраните профиль, инвентарь, задания, метки и историю поиска в один JSON.</p><label class="v4-row"><input id="v41-full-backup" type="checkbox" checked> Добавить настройки и основные записи старого ПДА</label><button id="v41-export">↓ СКАЧАТЬ КОПИЮ</button><label class="v4-field">Восстановить из файла<input id="v41-import" type="file" accept="application/json,.json"></label><p class="v4-alert">Восстановление заменит соответствующие локальные записи только после подтверждения. Для применения старых настроек потребуется обновить страницу.</p></section><section class="v4-card"><h3>СОСТОЯНИЕ АРХИВА</h3><p>Всего материалов: <b>${catalogue().length}</b></p><p>Авторских полевых протоколов: <b>${V41_GUIDE_RECORDS.length}</b></p><p>Личных меток: <b>${data.marks.length}</b></p><p>Экспедиций: <b>${data.missions.length}</b></p><p class="v4-muted">Файл не отправляется на сервер; он скачивается прямо на устройство.</p></section></div>`);
+ $('v41-export').onclick=()=>{
+  const payload={format:'PDA_ZONE_V4',version:2,exportedAt:new Date().toISOString(),data:v41CleanData(data)};
+  if($('v41-full-backup').checked){payload.legacy={};for(const k of V41_CORE_KEYS)try{const v=localStorage.getItem(k);if(v!==null)payload.legacy[k]=v}catch{}}
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='PDA_ZONE_v4_1_backup.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
+ };
+ $('v41-import').onchange=async e=>{
+  const file=e.target.files?.[0];if(!file)return;
+  try{
+   if(file.size>1500000)throw Error('Максимальный размер копии — 1,5 МБ');
+   const x=JSON.parse(await file.text());if(x.format!=='PDA_ZONE_V4'||![1,2].includes(x.version))throw Error('Это не поддерживаемая копия ПДА');
+   const clean=v41CleanData(x.data),legacy={};
+   if(x.legacy&&typeof x.legacy==='object')for(const k of V41_CORE_KEYS){const v=x.legacy[k];if(typeof v==='string'&&v.length<250000)legacy[k]=v}
+   if(!confirm(`Восстановить данные ПДА? Будут заменены личные записи${Object.keys(legacy).length?' и настройки старого ПДА':''}.`))return;
+   const old={};const keys=[KEY,...Object.keys(legacy)];for(const k of keys)old[k]=localStorage.getItem(k);
+   try{localStorage.setItem(KEY,JSON.stringify(clean));for(const [k,v] of Object.entries(legacy))localStorage.setItem(k,v)}catch(err){for(const [k,v] of Object.entries(old))try{if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch{}throw err}
+   data=clean;render();alert('Копия восстановлена. Если были восстановлены старые настройки, перезагрузите страницу.');
+  }catch(err){alert('Ошибка восстановления: '+err.message)}
+ };
+};
+
+ function install(){const home=$('home');if(!home)return;const btn=document.createElement('button');btn.type='button';btn.className='v4-launch';btn.textContent='✦ ПОЛЕВОЙ ЦЕНТР';btn.onclick=()=>open();const actionbar=home.querySelector('.actionbar');if(actionbar)actionbar.append(btn);else home.prepend(btn);const second=document.createElement('button');second.className='v4-launch';second.type='button';second.textContent='✦ ЦЕНТР';second.onclick=()=>open();const anchor=$('ws-home')||$('ws-close');if(anchor?.parentElement)anchor.parentElement.append(second);else $('workspace')?.prepend(second);document.title='АРХИУМ v6.10 — Энциклопедия Зоны';const foot=$('total-foot');if(foot)foot.textContent=`${catalogue().length} МАТЕРИАЛОВ / v4.9`;window.PDA_ZONE_V4={open,version:'4.5',count:()=>catalogue().length};}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
+})();
+
+</script><style>
+/* АРХИУМ 4.2: no overlapping home navigation at any viewport. */
+.home .tiles{flex:0 0 auto!important;height:auto!important;min-height:0!important;grid-auto-rows:minmax(132px,auto)}
+.home .actionbar,.home .ops-shortcut,.home .footnote,.home .zone-preview{flex:0 0 auto!important;position:relative!important;inset:auto!important;transform:none!important;height:auto!important}
+.home .actionbar{align-items:stretch;grid-auto-rows:minmax(46px,auto);align-content:start}
+.home .actionbar>button{min-width:0;min-height:46px;white-space:normal;overflow-wrap:anywhere;word-break:normal;line-height:1.25;text-align:center;padding:9px 7px}
+.home .actionbar .v4-launch{font-size:12px;line-height:1.3;padding:12px}
+.home .actionbar .action i{flex-shrink:0}
+.home .footnote{padding-bottom:15px}
+.workspace-actions .v4-launch{font-size:11px;min-height:34px;padding:4px 9px;letter-spacing:0}
+.v42-extra{margin-top:22px;padding-top:18px;border-top:1px solid #617543;color:#c9d7bd;line-height:1.55}
+.v42-extra h3{color:#e4c56c;font-size:18px;letter-spacing:.04em;margin:0 0 10px}
+.v42-extra h4{color:#c9e3a9;margin:14px 0 6px;font-size:14px}
+.v42-extra p{font-size:13px;line-height:1.68;margin:6px 0 12px}
+.v42-extra ul{margin:7px 0 12px;padding-left:20px}.v42-extra li{margin:6px 0;font-size:13px}
+.v42-related{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}.v42-related button{background:#1a2e21;border:1px solid #65814d;border-radius:4px;color:#e4eacb;padding:7px 10px;font-size:12px;line-height:1.4;text-align:left}
+.v42-related button:hover,.v42-related button:focus-visible{background:#355234;border-color:#bfe08d}
+.v42-context{border-left:3px solid #91b56d;background:#16271c;padding:12px 13px;margin:10px 0}
+.v42-note{font-size:11px!important;color:#aab8a1!important}
+@media(max-width:710px){
+ .home{display:block!important;overflow-y:auto!important;overflow-x:hidden!important;padding:11px 10px 28px!important;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+ .home>*{margin-bottom:12px!important}
+ .home .tiles{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:none!important;grid-auto-rows:minmax(138px,auto)!important;gap:10px!important;margin:10px 0 18px!important}
+ .home .tile{min-height:138px!important;height:auto!important;padding:11px!important}
+ .home .tile strong{font-size:clamp(12px,3.4vw,15px);line-height:1.28}
+ .home .actionbar{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;margin:12px 0!important;padding:0!important;width:100%!important}
+ .home .actionbar>button{grid-column:auto!important;min-height:52px!important;font-size:clamp(10px,2.75vw,13px)!important;max-width:100%!important}
+ .home .actionbar .v4-launch{grid-column:1 / -1!important;min-height:54px!important;font-size:14px!important}
+ .home .actionbar .action i{font-size:17px}
+ .home .ops-shortcut{width:100%!important;min-height:43px!important;margin:10px 0!important}
+ .home .zone-preview{display:flex!important;margin:10px 0!important;min-height:52px!important}
+ .home .footnote{display:block!important;line-height:1.55!important;overflow-wrap:anywhere;padding-bottom:25px!important}
+ .home .footnote span{display:block;margin:5px 0}
+ .workspace-actions{flex-shrink:0;gap:4px}
+ .workspace-actions .v4-launch{font-size:10px!important;min-height:36px;max-width:80px;padding:4px;letter-spacing:0}
+ .workspace-heading h2{font-size:clamp(13px,3.7vw,18px)!important;white-space:nowrap}
+ .v42-extra p,.v42-extra li{font-size:12px}
+}
+@media(max-width:360px){.home .tiles{grid-auto-rows:minmax(122px,auto)!important}.home .tile{min-height:122px!important}.workspace-actions .v4-launch{max-width:65px;font-size:9px!important}}
+
+</style><script>
+/* АРХИУМ 4.2 — contextual dossiers and section-specific field notes. */
+(()=>{
+ 'use strict';
+ if(typeof DB==='undefined'||!Array.isArray(DB))return;
+ const norm=s=>String(s||'').toLocaleLowerCase('ru').replace(/ё/g,'е');
+ const TAGS={
+  factions:['Сопоставляйте позиции группировки в каждой из трёх игр: территории, отношения с другими и доступные задания могут отличаться.','Разделяйте идеологию фракции, действия отдельных персонажей и состояние фронта в конкретной части трилогии.','Для изучения конфликта откройте досье соперников, а затем изучите их основные базы и представителей.'],
+  characters:['Уточняйте, в какой игре и на каком этапе сюжета встречается персонаж; у похожих ролей бывают разные последствия.','Связывайте досье персонажа с его группировкой, местом встречи и заданиями, а не только с именем.','В собственном журнале удобно фиксировать разговоры и незавершённые дела, не раскрывая заранее сюжетные подробности.'],
+  locations:['Проверяйте выбранную игру: одинаковое название района не означает одинаковые маршруты и расстановку сил.','Перед вылазкой сопоставляйте карту переходов, местные угрозы и нужное для задания снаряжение.','Общая карта ПДА — схематическая; она помогает ориентироваться по локациям, но не заменяет внутриигровую карту точных точек.'],
+  weapons:['При сравнении образцов учитывайте тип оружия, боеприпасы, дистанцию и версию игры.','Точные показатели урона, износа или улучшений нельзя переносить между частями без сверки с конкретным релизом.','В Полевом центре можно поместить выбранный образец в личный инвентарь и сопоставить его досье с другим оружием.'],
+  suits:['Различайте пулестойкость, защиту от аномальных воздействий и удобство в продолжительной вылазке.','Особенности брони и возможные улучшения следует проверять отдельно для ТЧ, ЧН и ЗП.','Составляйте комплект исходя из конкретного района, а не только по общему классу костюма.'],
+  artifacts:['Связь артефакта с аномалией не означает гарантированного появления при каждом посещении поля.','Свойства и побочные эффекты могут различаться между играми, поэтому сравнивайте данные по выбранной части.','Используйте раздел «Связи» в Полевом центре для переходов между типом аномалии, отмеченными местами и артефактами.'],
+  mutants:['Обращайте внимание на поведение противника, опасную дистанцию и пространство для манёвра.','Не все советы подходят для каждой части трилогии: численность, точки появления и условия схватки зависят от игры.','При подготовке экспедиции отметьте в журнале известные встречи и доступные укрытия.'],
+  anomalies:['Сопоставляйте визуальные признаки, характер воздействия и сведения конкретной игры.','Болты и детекторы полезны для исследования, но игровой способ обнаружения различается по частям серии.','При просмотре досье проверяйте места и связанные артефакты отдельно для ТЧ, ЧН и ЗП.'],
+  gear:['Назначение прибора и его доступность различаются между играми. Проверяйте описание конкретной модели.','Выбирайте расходники и приборы под цель вылазки; не считайте один набор универсальным для любой угрозы.','Личный инвентарь ПДА — вспомогательная запись, а не отражение содержимого игры.'],
+  knowledge:['Начните с общего обзора, затем откройте первичные досье сущностей: локаций, группировок, аномалий и предметов.','Обобщающие статьи помогают сопоставлять три игры, но точные численные параметры требуют отдельной проверки.','Авторские полевые советы отмечены как самостоятельный тип материалов и не считаются подтверждённым каноном.']
+ };
+ const SECTION_FIELD_NOTES={
+  factions:[['Политическая карта','Соперничество фракций нельзя свести к одному статичному списку союзников. События ЧН, ТЧ и ЗП происходят в разное время, поэтому сравнивайте расположение баз и отношения по конкретной игре.'],['Важные роли','Командование, торговцы, техники и рядовые бойцы выполняют разные функции. Полезно смотреть на организацию группировки через связанных персонажей.'],['Выбор стороны','Отношение группировок к игроку и побочные задания зависят от сюжетных условий и действий в игре. Отмечайте последствия в собственном журнале.'],['Проверка источника','Разделяйте подтверждённые игровые сведения и предположения о мотивах фракций.']],
+  characters:[['Хронология','Ищите персонажа внутри нужной временной части трилогии: приквел ЧН, история ТЧ и события ЗП дают разные перспективы.'],['Сюжетная роль','Не смешивайте знакомство с персонажем, выдаваемые задания и последующие раскрытия сюжета. Для первого прохождения лучше начать с краткой биографии.'],['Связь с местом','Уточняйте локацию встречи и принадлежность к группировке: они помогают найти нужное досье.'],['Полевые заметки','Записывайте только собственные наблюдения и условия текущего задания — это сохранит историю прохождения без лишних спойлеров.']],
+  locations:[['Схема переходов','Переключатель ТЧ / ЧН / ЗП нужен не для оформления: набор регионов и связей между ними меняется.'],['Опасности района','Поиск по названию локации поможет обнаружить связанных мутантов, аномалии и ключевые предметы, если они упомянуты в архиве.'],['Базы и ориентиры','Перед переходом запомните известные лагеря, научные объекты, торговцев и важные развилки.'],['Точность карты','Общая схема не является точным GPS-планом и не должна использоваться как координатный навигатор.']],
+  weapons:[['Типы вооружения','Сравнивайте отдельно короткоствольное, автоматическое, дробовое, снайперское и специальное оружие.'],['Боеприпасы','Обозначение модели недостаточно для выбора патронов: откройте соответствующие записи снаряжения.'],['Различия игр','Характеристики и доступность оружия зависят от конкретной части и версии.'],['Выбор под задачу','Дистанция боя, противники и доступный боезапас важнее одного отвлечённого рейтинга.']],
+  suits:[['Два типа защиты','Баллистическая и аномальная защита решают разные задачи и должны оцениваться раздельно.'],['Долгая вылазка','Обращайте внимание на ограничения передвижения, состояние и потребность в обслуживании, если они присутствуют в игре.'],['Специализация','Научные, армейские и сталкерские костюмы рассчитаны на разные условия.'],['Сравнение','Используйте параллельные карточки, но не переносите недостоверные проценты между играми.']],
+  artifacts:[['Классы происхождения','В архиве находки связаны с семействами аномальных полей, но конкретные точки появления могут меняться.'],['Свойства','Положительные эффекты могут сопровождаться отрицательными. Читайте конкретную версию досье.'],['Исследование','Сравнивайте досье артефакта с записями аномалии и локации.'],['После находки','Внесите предмет в личный инвентарь и сохраните собственную метку места обнаружения.']],
+  mutants:[['Поведение','Одни существа опасны в ближнем контакте, другие создают дистанционную или пси-угрозу.'],['Признаки','Запоминайте звуки, движения, силуэт и особенности поведения, перечисленные в досье.'],['Среда','Укрытия и пространство для манёвра могут играть не меньшую роль, чем выбранное оружие.'],['Проверка','Не переносите автоматически поведение и частоту появления из одной игры в другую.']],
+  anomalies:[['Категории','Гравитационные, термические, электрические и химические угрозы требуют разного подхода.'],['Обнаружение','Не считайте участок безопасным по одному визуальному признаку; используйте игровые способы проверки.'],['Артефакты','Раздел «Связи» показывает привязки, уже записанные в архиве, а не гарантированную добычу.'],['По трилогии','Отдельные игровые поля и набор находок различаются между ТЧ, ЧН и ЗП.']],
+  gear:[['Приборы','Отдельно изучайте детекторы артефактов, дозиметры и вспомогательные устройства.'],['Расходники','Боеприпасы, аптечки и защитные препараты имеют разные задачи.'],['Снаряжение для маршрута','Подбирайте комплект под ожидаемую угрозу и длительность экспедиции.'],['Личный учёт','Рюкзак в ПДА хранит записи на устройстве; синхронизации с инвентарём игры нет.']],
+  knowledge:[['Три игры','ЧН рассказывает о предыстории, ТЧ — о путешествии Меченого, ЗП — о событиях после основной истории.'],['Подтверждения','Сверяйте спорные даты и численные значения с указанным источником.'],['Поиск','Фильтры по игре и названиям помогают не смешивать несовместимые механики.'],['Полевые советы','Отдельные руководства в v4.1 и выше являются авторскими памятками, а не документами из игры.']]
+ };
+ const FEATURED={
+  'Долг':['При оценке группировки учитывайте её заявленную цель сдерживать опасность Зоны и то, как эта позиция отражается в отношениях с другими сталкерами.','Сопоставляйте Росток в ТЧ с базой на Агропроме в ЧН: это разные сюжетные контексты.'],
+  'Свобода':['Идеологию группировки удобнее изучать вместе с её отношениями с «Долгом» и взглядами на существование Зоны.','Уточняйте, какая база и командование относятся к конкретной игре.'],
+  'Монолит':['При изучении северных маршрутов смотрите на присутствие «Монолита» как на часть сюжетной обстановки, а не универсальную отметку для всех времён.','Подробности происхождения и мотивов связаны со спойлерами: изучайте их по мере прохождения.'],
+  'Чистое небо':['Группировка связана с исследованием Зоны и особенно важна для событий приквела.','Историю Болот и персонажей организации удобнее читать вместе с предысторией Шрама.'],
+  'Меченый':['Разделяйте известные в начале игры сведения о герое и факты, открывающиеся в ходе сюжета.','Для самостоятельного прохождения отмечайте в журнале промежуточные вопросы, не читая спойлерные материалы заранее.'],
+  'Шрам':['Его история относится к «Чистому небу», поэтому события и знакомые места нужно сопоставлять с хронологией приквела.','При чтении досье уделите внимание связи героя с выбросами и расследованием группы «Чистое небо».'],
+  'Дегтярёв':['Маршрут персонажа лучше рассматривать через Затон, Юпитер и Припять, не смешивая их с маршрутом Меченого.','Связанные задания можно сопровождать личными заметками об исследованных объектах и найденных документах.'],
+  'Кордон':['Это удобная отправная точка для изучения сталкерского быта, торговли и проходов в соседние районы.','Схемы Кордона в ТЧ и ЧН следует сравнивать отдельно: расстановка сил и условия переходов не полностью совпадают.'],
+  'Болота':['В «Чистом небе» этот район тесно связан со стартом истории и деятельностью одноимённой группировки.','Во время исследования болотистого ландшафта отмечайте отдельные проходы и ориентиры в личном журнале.'],
+  'Янтарь':['Район связан с научными исследованиями и особыми аномальными угрозами; он заслуживает отдельной проверки снаряжения.','Для навигации полезно сопоставлять лабораторные объекты, бункер учёных и маршрут выхода.'],
+  'Затон':['В ЗП это один из ключевых исследуемых районов с собственными аномальными полями и точками интереса.','Метки после каждого обследованного объекта помогают не потерять ход исследования.'],
+  'Юпитер':['Сопоставляйте промышленный район, станцию Янов и окрестные объекты, не считая их одним местом.','Для сюжетных задач полезно вести отдельную запись о каждом посещённом техническом объекте.'],
+  'Припять':['Город присутствует в разных сюжетных обстоятельствах, поэтому важна привязка к конкретной игре.','Не следует переносить перечень доступных районов и внутриигровых маршрутов из ТЧ в ЗП без проверки.'],
+  'Кровосос':['Угроза связана с неожиданным сближением; изучайте признаки присутствия и условия для безопасного манёвра.','Не используйте один шаблон боя в каждой части серии — поведение и баланс могут различаться.'],
+  'Контролёр':['Это пример противника, для которого важна не только физическая, но и пси-угроза.','Перед изучением связанных заданий обратите внимание на отдельное досье о пси-опасностях и защите.'],
+  'Бюрер':['Встреча может включать нестандартные эффекты на дистанции, поэтому важно изучить его поведение заранее.','Сопоставьте досье мутанта с особенностями закрытых помещений и лабораторных участков.'],
+  'Химера':['Угроза связана с высокой подвижностью существа и резким сокращением дистанции.','При подготовке к встрече учитывайте пространство для уклонения, а не только класс оружия.'],
+  'Трамплин':['Относится к гравитационным угрозам; полезно отдельно изучить признаки срабатывания и применение болтов.','Артефакты, указанные в досье аномалии, — это возможные связи архива, а не обещание находки.'],
+  'Электра':['Перед проходом изучайте характер электрических разрядов и подходящие меры защиты в конкретной игре.','Досье артефактов электрического происхождения поможет связать тип поля с находками.'],
+  'Жарка':['Термическая опасность требует отдельного выбора защиты и наблюдения за эффектами поля.','Не переносите конкретные места появления и эффект из одной части трилогии в другую.'],
+  'Кисель':['Изучайте этот тип как химическую опасность, отличную от радиации и электрических воздействий.','В справочнике полезно сопоставить описание поля с артефактами, которые могут быть с ним связаны.'],
+  'Медуза':['Относится к гравитационному семейству артефактов, но её эффекты следует уточнять для выбранной игры.','Используйте связи с аномальными полями, чтобы найти соответствующие записи о местах обнаружения.'],
+  'Огненный шар':['При сравнении не ограничивайтесь названием: свойства артефакта зависят от механик конкретной части.','Сопоставьте его с термическими аномалиями и собственной защитой.'],
+  'Батарейка':['Этот артефакт особенно важно рассматривать по версиям игры, поскольку названия и свойства предметов могут пересекаться.','При отсутствии точных параметров в архиве лучше оставить их неполными, чем придумывать значения.'],
+  'АКМ-74/2':['Для корректного сравнения учитывайте тип боеприпасов и назначение оружия в выбранной игре.','Не переносите точные показатели урона, рассеивания и модификаций между релизами.'],
+  'Винтарь-ВС':['Сопоставляйте скрытное применение и задачи на дистанции с требуемыми боеприпасами.','При выборе для экспедиции проверьте доступность и характеристики именно в вашей части серии.'],
+  'СВДм-2':['При изучении снайперского оружия обращайте внимание на дистанцию, оптику и подходящую тактику.','Сравнение с универсальными автоматами имеет смысл только в рамках одинаковых условий применения.'],
+  '«Сева»':['Это пример костюма, который стоит оценивать одновременно по защите от аномалий и боевых угроз.','Отдельно уточняйте игровой вариант и доступные способы обслуживания.'],
+  'Экзоскелет':['Высокий класс защиты может сопровождаться ограничениями подвижности и другими компромиссами, зависящими от игры.','Выбирая комплект, сверяйте не только стойкость, но и назначение маршрута.'],
+  'Комбинезон «Заря»':['Практично рассматривать как промежуточное снаряжение при развитии персонажа.','Для более опасных локаций сопоставляйте его защиту с альтернативными костюмами по конкретной игре.'],
+  'Детектор «Сварог»':['Досье детекторов полезно читать по возрастающим возможностям приборов и этапам игровой серии.','Не путайте учебный сканер этого ПДА с внутриигровым обнаружением артефактов.'],
+  'Детектор «Велес»':['При выборе прибора учитывайте возможности обнаружения разных находок в соответствующей игре.','В отличие от атмосферной имитации ПДА, игровой детектор действует по правилам самой игры.'],
+  'Болты':['Это расходуемый инструмент обследования опасных участков, а не универсальный способ обнулить риск.','Различайте физическую проверку траектории в игре и обзорные сведения из нашего справочника.'],
+  'Пси-шлем':['Особые средства защиты следует изучать в контексте сюжетных задач и конкретной угрозы.','Обозначение предмета не означает одинаковую доступность и действие во всех частях трилогии.']
+ };
+ function add(tag,className,text){const n=document.createElement(tag);if(className)n.className=className;if(text!==undefined)n.textContent=text;return n}
+ function related(x){
+  const ownText=norm([x.short,x.detail,...(x.body||[])].join(' '));
+  const tags=new Set((x.tags||[]).map(norm));
+  return DB.filter(y=>y.id!==x.id).map(y=>{
+   let score=0;const name=norm(y.name),reverse=norm([y.short,y.detail].join(' '));
+   if(name.length>=5&&ownText.includes(name))score+=5;
+   if(norm(x.name).length>=5&&reverse.includes(norm(x.name)))score+=4;
+   for(const t of y.tags||[])if(tags.has(norm(t)))score+=1;
+   if(x.cat===y.cat)score+=.4;
+   if(x.cat==='artifacts'&&y.cat==='anomalies'&&Object.values(y.anomalyByGame||{}).some(z=>z.artifacts?.some(t=>norm(t)===norm(x.name))))score+=9;
+   if(x.cat==='locations'&&y.cat==='anomalies'&&Object.values(y.anomalyByGame||{}).some(z=>z.locations?.some(t=>norm(t).startsWith(norm(x.name)))))score+=8;
+   return {y,score};
+  }).filter(z=>z.score>=2).sort((a,b)=>b.score-a.score).slice(0,5).map(z=>z.y);
+ }
+ function jump(x){if(!x)return;if(typeof openSection==='function'&&typeof selectEntry==='function'){openSection(x.cat,{game:'all'});selectEntry(x.id,true)}}
+ function annotate(x){
+  const reading=document.getElementById('reading');if(!reading||!x||reading.querySelector('.v42-extra'))return;
+  const sec=add('section','v42-extra');sec.append(add('h3','','▤ ПОЛЕВОЕ ДОПОЛНЕНИЕ'));
+  const feature=FEATURED[x.name];if(feature){sec.append(add('h4','','ОСОБЕННОСТИ ДОСЬЕ'));for(const p of feature)sec.append(add('p','',p))}
+  const context=TAGS[x.cat];if(context){const box=add('div','v42-context');box.append(add('h4','','КАК ИЗУЧАТЬ ЭТУ ЗАПИСЬ'));for(const p of context.slice(0,2))box.append(add('p','',p));sec.append(box)}
+  const rel=related(x);if(rel.length){sec.append(add('h4','','СВЯЗАННЫЕ МАТЕРИАЛЫ'));const group=add('div','v42-related');for(const y of rel){const b=add('button','',y.name);b.type='button';b.title=`Открыть: ${y.name}`;b.addEventListener('click',()=>jump(y));group.append(b)}sec.append(group)}
+  sec.append(add('p','v42-note','Полевые дополнения — авторские пояснения. Подтверждённые сведения и игровую принадлежность сверяйте по основному досье.'));
+  reading.append(sec);
+ }
+ function annotateGuide(category){
+  const reading=document.getElementById('reading'),notes=SECTION_FIELD_NOTES[category];if(!reading||!notes)return;
+  const sec=add('section','v42-extra');sec.append(add('h3','','◈ ПОЛЕВОЕ РУКОВОДСТВО РАЗДЕЛА'));
+  for(const [title,body] of notes){sec.append(add('h4','',title),add('p','',body))}
+  sec.append(add('p','v42-note','Это дополнительный авторский справочник по работе с архивом, не текст из игры.'));
+  reading.append(sec);
+ }
+ if(typeof selectEntry==='function'){
+  const original=selectEntry;selectEntry=function(id,...rest){const result=original.call(this,id,...rest);annotate(DB.find(x=>x.id===id));return result};
+ }
+ if(typeof renderSectionGuide==='function'){
+  const original=renderSectionGuide;renderSectionGuide=function(...args){const result=original.apply(this,args);if(typeof current!=='undefined')annotateGuide(current);return result};
+ }
+ if(window.PDA_ZONE_V4)window.PDA_ZONE_V4.version='4.2';
+ const footer=document.getElementById('total-foot');if(footer)footer.textContent=`${DB.length} МАТЕРИАЛОВ / v4.9`;
+ document.title='АРХИУМ v6.10 — Энциклопедия Зоны';
+ window.PDA_ZONE_V42={version:'4.5',featured:Object.keys(FEATURED).length,sectionGuides:Object.keys(SECTION_FIELD_NOTES).length};
+})();
+
+</script><style>
+/* АРХИУМ v4.3 — readable, reachable per-section additions. */
+.section-toolbar:has(.v43-filter){flex-wrap:wrap;gap:7px;align-items:center}
+.v43-filter{border:1px solid #9b8a4b;background:#233421;color:#e4d69b;border-radius:4px;padding:7px 10px;min-height:30px;font-weight:800;font-size:10px;letter-spacing:.03em;white-space:normal;text-align:center}
+.v43-filter:hover,.v43-filter:focus-visible{background:#435a31;color:#fff;border-color:#cbe897}
+.entry:has(.row-title) .row-title{overflow-wrap:anywhere}
+@media(max-width:710px){
+ .section-toolbar:has(.v43-filter){display:flex!important;flex-wrap:wrap!important;padding:7px!important;gap:6px!important}
+ .section-toolbar .v43-filter{flex:1 1 100%;width:100%;padding:9px 10px;min-height:38px;font-size:11px}
+ .section-toolbar>span{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+ .entry{min-height:58px}
+}
+
+</style><script>
+/* АРХИУМ 4.3 — original, clearly labeled reference studies for the trilogy. */
+(()=>{
+ 'use strict';
+ if(typeof DB==='undefined'||!Array.isArray(DB))return;
+ const briefs=[
+ // Factions
+ ['factions','Противостояние «Долга» и «Свободы»','ТЧ, ЧН, ЗП','Две противоположные позиции относительно Зоны.',
+  '«Долг» рассматривает Зону как угрозу внешнему миру, тогда как «Свобода» выступает за более открытый доступ. Их конфликт — не просто вопрос экипировки: различаются цели, отношение к исследователям и взгляды на будущее территории.',
+  'Сопоставляйте расположение баз и руководителей по конкретной части игры. В ЧН важна механика борьбы группировок, а в ЗП отношения с представителями разных сторон могут отражаться на побочных задачах.'],
+ ['factions','Группировки в «Чистом небе»: динамика войны','ЧН','Механика изменения контроля территорий.',
+  'Приквел делает борьбу фракций отдельным игровым процессом: участие в столкновениях влияет на положение сторон и доступные возможности. Этот процесс нельзя автоматически переносить на ТЧ или ЗП.',
+  'Для изучения ищите одновременно досье группировки, ключевую базу и знакомых командиров. Фиксируйте собственные наблюдения, потому что состояние фронта зависит от событий игры.'],
+ ['factions','Одиночки: самостоятельная жизнь в Зоне','ТЧ, ЧН, ЗП','Объединяющее название для независимых сталкеров.',
+  'Одиночки не образуют единой жёсткой структуры с обязательной общей идеологией. В разных местах они торгуют, исследуют, сопровождают друг друга и выполняют разовые поручения.',
+  'Для понимания их роли полезно смотреть на конкретных торговцев, проводников и небольшие лагеря вместо предположения, будто любой независимый сталкер действует одинаково.'],
+ ['factions','Наёмники: работа по контракту','ТЧ, ЧН, ЗП','Отдельная логика от идеологических группировок.',
+  'Наёмников обычно связывают с конкретной задачей и заказом. Их присутствие не обязательно означает, что они постоянно контролируют район.',
+  'При разборе досье проверяйте, кто действует в конкретной игре и какова роль отряда в текущем сюжете. Не переносите отношение одного подразделения на всех наёмников серии.'],
+ ['factions','Учёные и исследовательские экспедиции','ТЧ, ЧН, ЗП','Научная работа как отдельная линия мира Зоны.',
+  'Учёные заняты изучением аномальных явлений, приборов и свойств артефактов. Их взаимодействие со сталкерами отличается от борьбы за территории между вооружёнными фракциями.',
+  'Связывайте научные базы с Янтарём, лабораториями, специальным снаряжением и персонажами-исследователями. Разделяйте официальный сюжет и собственные интерпретации результатов экспериментов.'],
+ ['factions','«Монолит» и северные маршруты','ТЧ, ЧН, ЗП','Сюжетная группировка, важная для движения к центру.',
+  'Тема «Монолита» связана с опасностью центральных районов и раскрытием тайн Зоны. При первом прохождении лучше рассматривать её действия без преждевременных сюжетных объяснений.',
+  'Для исследования открывайте сначала места встреч и общие досье противников, а уже затем документы с раскрытием поздних событий.'],
+ ['factions','Бандиты и контроль проходов','ТЧ, ЧН, ЗП','Локальное влияние криминальных групп.',
+  'Бандитские отряды в разных играх связаны с грабежом, контролем отдельных участков и противостоянием независимым сталкерам. У них нет единой неизменной схемы присутствия для всей трилогии.',
+  'Сверяйте конкретный район, сюжетный момент и связанных персонажей. Практический маршрут не следует строить по одной устаревшей карте отношений.'],
+ ['factions','Фракции и отношения с игроком','ТЧ, ЧН, ЗП','Репутация и действия имеют последствия.',
+  'Отношение персонажей и групп может меняться из-за выполненных задач, конфликтов и решений игрока. Наиболее заметный акцент на войнах группировок сделан в «Чистом небе».',
+  'Записывайте результаты выбора отдельно для каждого сохранения. Автономный ПДА не читает репутацию из игры и не может предсказать реакцию конкретного NPC без контекста.'],
+ // Characters
+ ['characters','Три главных героя трилогии','ТЧ, ЧН, ЗП','Меченый, Шрам и Дегтярёв — три разные перспективы.',
+  '«Чистое небо» рассказывает предысторию через Шрама. В «Тени Чернобыля» центральным персонажем становится Меченый. «Зов Припяти» переносит внимание на расследование майора Дегтярёва.',
+  'При чтении досье важно сохранять хронологию: порядок выхода игр и внутриигровая последовательность событий не полностью совпадают.'],
+ ['characters','Торговцы: информация и снабжение','ТЧ, ЧН, ЗП','Торговые точки важны для планирования вылазки.',
+  'Торговцы помогают обменивать добычу, покупать припасы и иногда направляют к заданиям. Но ассортимент и условия сделки зависят от игры и обстоятельств.',
+  'Связывайте персонажа с конкретной базой и маршрутом. Не считайте, что любой знакомый торговец будет доступен в каждой части трилогии.'],
+ ['characters','Учёные как источники знаний','ТЧ, ЧН, ЗП','Научные персонажи объясняют важные явления Зоны.',
+  'В разговорах и заданиях исследователей часто раскрываются свойства опасных областей, необходимость приборов и контекст лабораторных объектов.',
+  'Для углубления темы полезно объединять досье персонажа с записями об аномалиях, пси-опасностях и научном снаряжении.'],
+ ['characters','Командиры группировок','ТЧ, ЧН, ЗП','Связь персонажа с конфликтом и базой.',
+  'Командиры отражают цели своих организаций, но приписывать им общую позицию без учета сюжета некорректно. В разных частях меняются роли, точки встреч и обстановка.',
+  'Сравните досье руководителя с разделом группировки и картой её известных мест присутствия.'],
+ ['characters','Проводники и маршруты','ТЧ, ЧН, ЗП','Персонажи, связывающие зоны исследования.',
+  'Некоторые NPC помогают перемещаться, сообщают об опасностях или открывают новые пути в рамках игровых условий. Список таких возможностей не является одинаковым для всей трилогии.',
+  'При планировании перехода уточняйте конкретную игру и состояние задания. В ПДА можно записать личный маршрут, но это не телепортирует игрового героя.'],
+ ['characters','Персонажи и сюжетные спойлеры','ТЧ, ЧН, ЗП','Способ изучать биографии без преждевременных раскрытий.',
+  'История некоторых персонажей меняет смысл после поздних заданий. Если проходите игру впервые, начните с общего описания и не открывайте материалы, явно относящиеся к финалу.',
+  'В личном журнале можно фиксировать вопросы и подозрения отдельно от подтверждённых сведений архива.'],
+ ['characters','Второстепенные герои и их задачи','ТЧ, ЧН, ЗП','Побочные истории формируют ощущение живой Зоны.',
+  'У каждого лагеря могут быть свои знакомые персонажи, просьбы и локальные конфликты. Их изучение дополняет основную сюжетную линию.',
+  'Храните контекст места и игры вместе с именем, особенно если в архиве встречается несколько похожих прозвищ или вариантов перевода.'],
+ // Locations
+ ['locations','Маршрут ТЧ: от Кордона к северу','ТЧ','Постепенное движение через связанные районы.',
+  'Кордон, Свалка и более северные территории помогают понять, как расширяется пространство исследования в «Тени Чернобыля». При этом доступ к областям зависит от событий игры.',
+  'Используйте общую карту как схему последовательности регионов. Она не показывает точные позиции всех укрытий, секретов и противников.'],
+ ['locations','Болота и подходы в ЧН','ЧН','Начальный район приквела и его переходы.',
+  'Болота особенно важны для введения в «Чистое небо». Здесь исследование местности тесно связано с группировкой исследователей и меняющейся опасной средой.',
+  'Отмечайте ориентиры и возможные переходы раздельно: маршрут с экрана ТЧ не равнозначен маршруту в ЧН.'],
+ ['locations','Рыжий лес и продвижение к Лиманску','ЧН','Связка опасных северных направлений.',
+  'Эти территории имеют заметную роль в сюжете приквела. Маршрут следует изучать по заданиям и текущему состоянию мира, а не по абстрактному расстоянию на карте.',
+  'Для подготовки сопоставляйте карту, встречающиеся угрозы и цель прохождения, избегая преждевременных сюжетных деталей.'],
+ ['locations','Затон: структура исследований','ЗП','Отдельный большой район «Зова Припяти».',
+  'Затон сочетает лагеря сталкеров, аномальные поля и объекты исследования. Его удобно разбирать на небольшие экспедиции с отдельными заметками.',
+  'Для каждого изученного объекта сохраняйте ориентир, связанную находку и собственные наблюдения. Не считайте условную карту ПДА точной локальной картой.'],
+ ['locations','Юпитер и станция Янов','ЗП','Промышленный район и важные точки опоры.',
+  'В «Зове Припяти» Юпитер объединяет индустриальные сооружения, маршруты и задания. Станция Янов — важный ориентир в регионе.',
+  'Полезно различать заводские объекты, железнодорожную станцию и соседние аномальные поля: это не одна точка на карте.'],
+ ['locations','Припять: разные игровые версии','ТЧ, ЗП','Один город в разных сюжетных контекстах.',
+  'Припять входит в историю нескольких частей, но доступные районы, сценарии встреч и маршруты различаются. Не переносите детальные маршруты между играми.',
+  'В ЗП исследование города связано с более поздними событиями. При поиске сведений выбирайте игровой фильтр и читайте описание нужного объекта.'],
+ ['locations','Агропром и подземные объекты','ТЧ, ЧН','Сопоставление поверхности и подземелий.',
+  'Название района охватывает не только наземные подходы, но и отдельные подземные участки. Они важны для различных игровых историй.',
+  'Разделяйте ориентиры на поверхности и внизу. Для маршрута отмечайте вход, предполагаемый выход и связанные сюжетные условия.'],
+ ['locations','Янтарь: научный узел','ТЧ, ЧН','Исследовательская зона и её опасности.',
+  'Янтарь связан с научными объектами и особыми угрозами. Это место, где важно отличать обычную защиту от средств против специфических воздействий.',
+  'Перед изучением района проверьте досье научных персонажей и соответствующего снаряжения в выбранной игре.'],
+ ['locations','Лаборатории X-серии: как не путать','ТЧ, ЧН, ЗП','Подземные объекты имеют разные номера и сюжеты.',
+  'Обозначения X-18, X-16, X-8 и других объектов относятся к разным исследовательским узлам и не должны рассматриваться как одно помещение.',
+  'Сверяйте номер, игру, локацию входа и назначение задания. Часть лабораторной истории содержит существенные спойлеры.'],
+ ['locations','Общая карта: масштаб и границы','ТЧ, ЧН, ЗП','Схематическая карта не равна игровому минимапу.',
+  'Наша объединённая карта показывает отношения между регионами и приблизительную компоновку. Для ориентации в самом уровне нужен внутриигровой интерфейс.',
+  'Личные метки в HTML полезны как заметки, но не предоставляют реальные GPS-координаты и не изменяют игровой мир.'],
+ // Weapons
+ ['weapons','Пистолеты: компактное вооружение','ТЧ, ЧН, ЗП','Роль короткоствольного оружия в экипировке.',
+  'Пистолеты занимают отдельную нишу по сравнению с длинноствольными образцами. При выборе важны калибр, доступность патронов и конкретная модель.',
+  'Не переносите численные показатели из одной игры в другую: версии и настройки вооружения могут различаться.'],
+ ['weapons','Автоматы: универсальные задачи','ТЧ, ЧН, ЗП','Сравнение по назначению, а не одному параметру.',
+  'Автоматическое оружие пригодно для различных столкновений, однако выбор зависит от дистанции, боеприпасов и игровой ситуации.',
+  'Сопоставляйте в архиве соответствующие варианты оружия и боеприпасов. Никакие придуманные проценты точности в ПДА не подставляются.'],
+ ['weapons','Дробовики: ближние дистанции','ТЧ, ЧН, ЗП','Специализированная роль при ограниченной дистанции.',
+  'Дробовое оружие часто рассматривают для тесных пространств и близких столкновений. Важны модель, тип заряда и конкретные правила игры.',
+  'Сравнивайте разные виды дробовых патронов отдельно; названия зарядов не должны автоматически превращаться в универсальные числа урона.'],
+ ['weapons','Снайперские винтовки: дальний бой','ТЧ, ЧН, ЗП','Ограничения и преимущества специализированного оружия.',
+  'Для точного выстрела на дистанции важны обзор, оптические средства и условия позиции. Но даже дальнобойный образец не заменяет универсальный комплект.',
+  'Учитывайте доступность боеприпасов и необходимость подстраховки при близком столкновении.'],
+ ['weapons','Специальные образцы и скрытность','ТЧ, ЧН, ЗП','Общее назначение малошумного вооружения.',
+  'Специальные образцы могут отличаться сочетанием компактности, оптики и способов применения. Их удобство нельзя оценить лишь по внешнему виду.',
+  'Для каждого образца проверяйте обозначение в игре, доступные патроны и условия получения.'],
+ ['weapons','Модификации и ремонт в трилогии','ТЧ, ЧН, ЗП','Не все системы улучшений одинаковы.',
+  'В «Чистом небе» система улучшений снаряжения — заметная особенность игрового процесса. В других частях механика обслуживания и доступность изменений отличаются.',
+  'При сравнении не приписывайте предмету модификацию, которой нет в выбранной версии игры.'],
+ ['weapons','Оружие против мутантов и людей','ТЧ, ЧН, ЗП','Разные цели требуют разных решений.',
+  'Встречи с людьми и существами отличаются дистанцией, манёвром и условиями угрозы. Удобный набор для одной ситуации может оказаться неудобным для другой.',
+  'Перед экспедицией сопоставьте основные типы противников района, доступное оружие и запас патронов.'],
+ // Suits
+ ['suits','Начальная экипировка сталкера','ТЧ, ЧН, ЗП','Что учитывать при первых вылазках.',
+  'Базовая одежда обычно рассчитана на ограниченные угрозы. С ростом опасности района важнее становится соответствие защиты реальной задаче.',
+  'Проверяйте, какие защитные свойства доступны в нужной игре, и не оценивайте костюм по названию или внешнему виду.'],
+ ['suits','Научные комбинезоны','ТЧ, ЧН, ЗП','Приоритет защиты от опасной среды.',
+  'Научное снаряжение в серии связано с исследованием аномальных зон. Но универсального костюма от всех угроз не существует.',
+  'Сравнивайте защиту от разных воздействий и пригодность к боевому столкновению отдельно.'],
+ ['suits','Тяжёлая броня и мобильность','ТЧ, ЧН, ЗП','Компромисс между защитой и движением.',
+  'Тяжёлые комплекты часто требуют учитывать ограничения, способ обслуживания и назначение. Их полезность зависит от планируемой вылазки.',
+  'В особенности сравнивайте конкретные реализации экзоскелетов и их ограничения в разных играх.'],
+ ['suits','Фракционная броня','ТЧ, ЧН, ЗП','Снаряжение группировок как отдельные варианты.',
+  'Различающиеся названия, нашивки и модели отражают принадлежность к организациям, но не делают комплекты автоматически эквивалентными.',
+  'Проверяйте игровую часть и отдельное досье: защитные показатели и доступность нельзя переносить между похожими костюмами.'],
+ ['suits','Защитные шлемы и специальные элементы','ТЧ, ЧН, ЗП','Дополнительное снаряжение зависит от механики игры.',
+  'Отдельные элементы защиты могут иметь самостоятельную роль, а в других ситуациях являются частью общего костюма.',
+  'Не смешивайте их с предметами сюжетного назначения: для каждого нужно сверять описание конкретной игры.'],
+ ['suits','Состояние костюма и подготовка','ТЧ, ЧН, ЗП','Планирование обслуживания перед походом.',
+  'Состояние снаряжения может влиять на его практическую ценность. Если игра предусматривает ремонт, это стоит учитывать до опасной экспедиции.',
+  'Личный журнал ПДА помогает составить список проверки, но не может считывать из игры текущее состояние брони.'],
+ // Artifacts
+ ['artifacts','Гравитационное семейство','ТЧ, ЧН, ЗП','Связь артефактов с гравитационными полями.',
+  'Медуза, Каменный цветок и другие предметы этого семейства встречаются в разных игровых контекстах. Свойства отдельного предмета могут меняться от части к части.',
+  'Откройте соответствующую аномалию и сравните списки находок по игре; перечень не является гарантией появления.'],
+ ['artifacts','Термическое семейство','ТЧ, ЧН, ЗП','Предметы, связанные с температурными явлениями.',
+  'Некоторые артефакты ассоциируются с жаровыми аномалиями, однако их полезные и отрицательные эффекты зависят от игровой системы.',
+  'Для планирования подбирайте защиту от опасного поля отдельно от оценки артефакта, который хотите получить.'],
+ ['artifacts','Электрическое семейство','ТЧ, ЧН, ЗП','Артефакты электростатических аномалий.',
+  'Электрические поля требуют осторожного движения и соответствующей защиты. Связанные находки могут иметь иные свойства в разных частях трилогии.',
+  'Не переносите порядок редкости, точные эффекты и точки появления без сверки по конкретному игровому полю.'],
+ ['artifacts','Химические и органические находки','ТЧ, ЧН, ЗП','Отдельная группа аномальных предметов.',
+  'Связи с химическими явлениями и органическими формами в серии разнообразны. Описания внешнего вида не заменяют перечень подтверждённых свойств.',
+  'Для каждого предмета смотрите его игровую принадлежность, место находки и возможные побочные эффекты.'],
+ ['artifacts','Польза и отрицательные эффекты','ТЧ, ЧН, ЗП','Сбалансированная оценка комплекта артефактов.',
+  'Положительные свойства артефактов в некоторых версиях игры сопровождаются нежелательными эффектами. Не складывайте их без учёта правил конкретной части.',
+  'Если в архиве нет проверенных чисел, сравнение остаётся качественным: ПДА не подменяет неизвестное значение выдуманным процентом.'],
+ ['artifacts','Поиск артефактов в ЧН','ЧН','Детекторы как важная часть исследования.',
+  'В «Чистом небе» артефакты обнаруживаются при помощи специальных детекторов; продвинутые модели расширяют возможности поиска.',
+  'Для вылазки отдельно подбирайте детектор, маршрут между полями и запас защиты. Найденную область удобно сохранить в личных метках.'],
+ ['artifacts','Артефакты и торговля','ТЧ, ЧН, ЗП','Добыча как часть сталкерской экономики.',
+  'Артефакты могут становиться предметом торговли или исследования. Условия обмена, ассортимент и ценность зависят от игры и торговца.',
+  'В ПДА отмечайте, какие предметы нужны для задания, какие — для личного использования и какие — для продажи.'],
+ ['artifacts','Повторные исследования аномального поля','ТЧ, ЧН, ЗП','Изменения после игровых событий.',
+  'В мире серии выбросы и динамика аномалий связаны с изменяющейся опасностью, но конкретные правила появления находок зависят от части игры.',
+  'Не воспринимайте случайный сигнал автономного ПДА как информацию о текущих артефактах в вашем сохранении.'],
+ // Mutants
+ ['mutants','Стайные противники','ТЧ, ЧН, ЗП','Опасность нескольких целей одновременно.',
+  'Существа, действующие группой, заставляют следить за окружением, путями отхода и направлением атаки. Одного описания урона недостаточно.',
+  'Сравнивайте условия появления и поведение по части игры: они не обязаны совпадать между релизами.'],
+ ['mutants','Скрытные и внезапные атаки','ТЧ, ЧН, ЗП','Угрозы, завязанные на момент обнаружения.',
+  'Некоторые мутанты опасны именно резким сближением и неожиданным появлением. Изучение характерных звуков и поведения помогает подготовиться.',
+  'Досье не гарантирует предсказание конкретного появления: ПДА не имеет связи с игровой симуляцией.'],
+ ['mutants','Пси-угрозы и особые воздействия','ТЧ, ЧН, ЗП','Противники, действующие не только физической атакой.',
+  'Контролёр и другие связанные с пси-явлениями угрозы требуют отдельного понимания игровой механики. Не следует смешивать их с радиацией.',
+  'Сопоставляйте описание мутанта с сюжетом района и средствами защиты, указанными для нужной части игры.'],
+ ['mutants','Крупные и живучие противники','ТЧ, ЧН, ЗП','Оценка пространства и ресурса боя.',
+  'Крупные мутанты требуют внимания к манёвру и условиям столкновения. Невозможно корректно оценивать опасность лишь по размеру существа.',
+  'Планируйте расход боеприпасов и возможность отступления, не выдавая эти общие рекомендации за точные параметры ИИ.'],
+ ['mutants','Подземные и лабораторные встречи','ТЧ, ЧН, ЗП','Особенности ограниченного пространства.',
+  'Закрытые помещения меняют обзор и пути перемещения. В лабораториях опасность могут создавать и сами аномальные явления.',
+  'Перед изучением объекта полезно сравнить досье вероятных существ, местные угрозы и выходы.'],
+ ['mutants','Бюрер и химера в ЗП','ЗП','Новые противники «Зова Припяти».',
+  'Официальное описание «Зова Припяти» отдельно выделяет химеру и бюрера как новых мутантов этой части. Их особенности имеет смысл изучать в контексте ЗП.',
+  'Не переносите подтверждённые для этого релиза параметры на модификации и другие версии без проверки.'],
+ ['mutants','Зомбированные сталкеры','ТЧ, ЧН, ЗП','Отдельный тип противников, связанный с особой угрозой.',
+  'Зомбированные не следует смешивать с животными-мутантами: их происхождение и поведение связаны с другими явлениями игрового мира.',
+  'При чтении досье обратите внимание на особенности соответствующих сюжетных районов и пси-опасностей.'],
+ ['mutants','Как составлять личный бестиарий','ТЧ, ЧН, ЗП','Система наблюдений без вымышленных цифр.',
+  'Для каждого существа отмечайте признаки, игру, район встречи и условия нападения. Отделяйте личный опыт от подтверждённого описания.',
+  'Такие заметки помогают сравнивать вылазки, не претендуя на знание скрытых параметров или точного поведения ИИ.'],
+ // Anomalies
+ ['anomalies','Гравитационные поля','ТЧ, ЧН, ЗП','Трамплин, Воронка и родственные явления.',
+  'Гравитационные аномалии отличаются поведением и эффектами. Даже внутри одного семейства нельзя считать все поля одинаковыми.',
+  'Сравнивайте досье конкретной аномалии, её признаки и указанные для игры места, а затем переходите к связанным артефактам.'],
+ ['anomalies','Электрические поля','ТЧ, ЧН, ЗП','Детальное различение электрических угроз.',
+  'Электрические аномалии способны создавать опасные разряды, поэтому важно понимать характер срабатывания и игровую механику проверки.',
+  'Не считайте один визуальный эффект гарантией безопасности и не смешивайте разные типы электрических объектов.'],
+ ['anomalies','Термические аномалии','ТЧ, ЧН, ЗП','Опасности высокой температуры.',
+  'Жаровые поля требуют отдельного учета защиты и маршрута. Описания термических аномалий нужно сверять с конкретной игрой.',
+  'Связанные артефакты и места появления показываются в досье, но их наличие не гарантировано в каждой игровой сессии.'],
+ ['anomalies','Химические аномалии','ТЧ, ЧН, ЗП','Семейство опасных химических воздействий.',
+  'Химические поля нельзя оценивать теми же средствами, что электрические или гравитационные. Для разных областей нужны разные решения.',
+  'При подготовке вылазки сопоставьте тип угрозы, свойства костюма и доступные точки обхода.'],
+ ['anomalies','Как читать досье аномалии','ТЧ, ЧН, ЗП','Три отдельных игровых контекста.',
+  'Начинайте с общего описания признаков, затем выбирайте ТЧ, ЧН или ЗП. Список мест и связанных артефактов может существенно отличаться.',
+  'Если в архиве нет подтверждённого места, это не повод придумывать координаты: отметьте наблюдение в личном журнале.'],
+ ['anomalies','Выбросы и изменение обстановки','ТЧ, ЧН, ЗП','Динамика Зоны различается по играм.',
+  'Выбросы и изменение аномальных участков занимают особое место в мире серии. Однако правила их появления, влияние на мир и находки зависят от игры.',
+  'Наш терминал может показывать художественные предупреждения, но они не синхронизированы с текущим внутриигровым выбросом.'],
+ ['anomalies','Подход к неизвестному полю','ТЧ, ЧН, ЗП','Порядок изучения и фиксации.',
+  'Сначала распознайте признаки, затем изучите возможные виды воздействия и лишь после этого планируйте проход в рамках игровых механик.',
+  'Фиксируйте увиденное в личных метках. Не используйте схематические координаты как точный план движения по уровню.'],
+ ['anomalies','Поля и артефакты: метод сопоставления','ТЧ, ЧН, ЗП','Связь двух справочных разделов.',
+  'Не каждая аномалия обязательно даёт каждый теоретически связанный с ней артефакт. Локальный архив хранит перечень известных ассоциаций.',
+  'Раздел «Связи» позволяет открыть исходную аномалию, сравнить список находок по игре и перейти к досье нужного артефакта.'],
+ // Gear
+ ['gear','Детекторы: общие принципы','ТЧ, ЧН, ЗП','Разные приборы и способы поиска.',
+  'Детекторы помогают обнаруживать аномальные явления и артефакты, но их функции менялись по трилогии. Особенно важны различия в «Чистом небе».',
+  'В ПДА представлены справочные описания приборов; его собственный сканер остаётся художественной симуляцией, не связан с игрой.'],
+ ['gear','Болты и проверка маршрута','ТЧ, ЧН, ЗП','Классический инструмент сталкера.',
+  'Болты служат для проверки опасных участков по правилам самой игры. Не следует воспринимать их как гарантию прохождения любой аномалии.',
+  'Для конкретного поля открывайте его досье и сопоставляйте возможные эффекты с выбранной частью серии.'],
+ ['gear','Дозиметр и радиационные угрозы','ТЧ, ЧН, ЗП','Радиация — отдельная система опасности.',
+  'Радиационное воздействие в серии не совпадает с электрическими, химическими и пси-эффектами. Назначение соответствующих приборов и средств нужно рассматривать отдельно.',
+  'При подборе защиты проверяйте конкретные свойства предмета и игровые условия, не вводя вымышленные измерения в интерфейсе.'],
+ ['gear','Медицинские предметы','ТЧ, ЧН, ЗП','Назначение расходников в экспедиции.',
+  'Аптечки, бинты и специальные средства решают разные игровые задачи. Не стоит сводить их к одному условному показателю «лечения».',
+  'Для подготовки вылазки составьте список расходников исходя из ожидаемых угроз и доступности пополнения запасов.'],
+ ['gear','Боеприпасы: совместимость','ТЧ, ЧН, ЗП','Калибр и тип заряда имеют значение.',
+  'При планировании запаса следует ориентироваться на игровое обозначение и совместимость с конкретным оружием.',
+  'Дробь, жекан, бронебойные и другие варианты нельзя считать взаимозаменяемыми без проверки используемой модели.'],
+ ['gear','Ремонт и обслуживание','ЧН, ЗП','Важная часть долгих экспедиций.',
+  'Механики обслуживания и улучшения снаряжения выражены в разных частях серии неодинаково. В ЧН развитие оружия и брони играет заметную роль.',
+  'Перед походом проверьте собственные записи о состоянии экипировки и доступных техниках в нужной игре.'],
+ ['gear','Пси-защита и сюжетное снаряжение','ТЧ, ЧН, ЗП','Особые предметы нужно отличать от обычных расходников.',
+  'Некоторые средства защиты тесно связаны с сюжетными задачами и определёнными опасными районами. Их назначение нельзя выводить только из названия.',
+  'Сверяйте досье предмета, соответствующую игру и условия задания; не смешивайте сюжетное устройство с обычным защитным снаряжением.'],
+ ['gear','Контрольный список перед выходом','ТЧ, ЧН, ЗП','Универсальная памятка для полевого журнала.',
+  'Запишите цель, маршрут, необходимые патроны, медикаменты, средства обнаружения и особые защитные предметы. Укажите условия возвращения.',
+  'Это авторский способ организации вылазки. Терминал не считывает инвентарь и не проверяет готовность героя автоматически.'],
+ // Knowledge
+ ['knowledge','Хронология трилогии без спойлеров','ТЧ, ЧН, ЗП','Порядок сюжета отличается от порядка релизов.',

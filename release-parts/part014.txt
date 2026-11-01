@@ -1,0 +1,500 @@
+ drawQuestDetails(qUi.selected);
+ O('ops-q-list').querySelectorAll('[data-q-open]').forEach(b=>b.onclick=()=>{qUi.selected=b.dataset.qOpen;drawQuests();if(matchMedia('(max-width:700px)').matches) O('ops-q-details')?.scrollIntoView({block:'nearest',behavior:'smooth'})});
+}
+function drawQuestDetails(id){const el=O('ops-q-details');if(!el)return;const q=QUEST_ARCHIVE.find(q=>q.id===id);if(!q){el.innerHTML='<div class="ops-q-empty">Выбери запись слева.</div>';return}
+ const shield=d.spoilers&&q.spoiler&&!qUi.revealed?.includes(q.id);
+ const status=questStatus(q.id);
+ el.innerHTML=`<div class="ops-q-detail-header"><span class="ops-q-id">ЗАПИСЬ / ${E(q.id.toUpperCase())}</span><div class="ops-row">${badge(q.game)}${badge(q.kind)}<span class="ops-q-status ${status}">${qLabels[status]}</span></div><h3>${E(shield?'Доступ ограничен: сюжетный спойлер':q.title)}</h3><p>⌖ ${E(q.area)} ${q.person?' · ◈ '+E(q.person):''}</p></div>
+ ${shield?`<div class="ops-q-shield"><b>СПОЙЛЕР СКРЫТ</b><p>В настройках включена защита сюжетных сведений.</p><button id="ops-q-reveal">Показать только это задание</button></div>`:`<div class="ops-q-desc">${E(q.desc)}</div><h4>ОРИЕНТИРЫ ПРОХОЖДЕНИЯ</h4><ol class="ops-q-steps">${q.steps.map(s=>`<li>${E(s)}</li>`).join('')}</ol>`}
+ <h4>МОЙ ПРОГРЕСС</h4><div class="ops-q-statusbuttons">${[['new','Не начато'],['active','В процессе'],['done','Выполнено']].map(([v,l])=>`<button type="button" data-q-state="${v}" class="${status===v?'sel':''}">${l}</button>`).join('')}</div>
+ <div class="ops-q-links"><h4>СВЯЗАННЫЕ РАЗДЕЛЫ</h4><button data-q-jump="area">⌖ ${E(q.area)}</button>${q.person?`<button data-q-jump="person">♟ ${E(q.person)}</button>`:''}${q.item?`<button data-q-jump="item">✦ ${E(q.item)}</button>`:''}<button data-q-jump="atlas">◎ Атлас</button></div>
+ <div class="ops-q-source"><b>ОТКУДА СВЕДЕНИЯ</b><a href="${E(q.source[1])}" target="_blank" rel="noopener noreferrer">${E(q.source[0])} ↗</a></div>`;
+ const reveal=O('ops-q-reveal');if(reveal)reveal.onclick=()=>{qUi.revealed=qUi.revealed||[];qUi.revealed.push(q.id);drawQuestDetails(q.id)};
+ el.querySelectorAll('[data-q-state]').forEach(b=>b.onclick=()=>{d.questStates[q.id]=b.dataset.qState;save();drawQuests();const total=QUEST_ARCHIVE.length;const pct=Math.round(100*QUEST_ARCHIVE.filter(x=>questStatus(x.id)==='done').length/total);const progress=O('ops-q-progress-value');if(progress)progress.style.width=pct+'%';const label=O('ops-q-progress-label');if(label)label.textContent=`Личный прогресс: ${pct}%`;updateQMetrics()});
+ el.querySelectorAll('[data-q-jump]').forEach(b=>b.onclick=()=>{switch(b.dataset.qJump){case 'area':go('locations',q.area);break;case 'person':go('characters',q.person);break;case 'item':go('artifacts',q.item);break;case 'atlas':mode='atlas';operations();drawAtlas(q.game);break}})
+}
+function updateQMetrics(){const panel=O('ops-q-metrics');if(!panel)return;const done=QUEST_ARCHIVE.filter(x=>questStatus(x.id)==='done').length,active=QUEST_ARCHIVE.filter(x=>questStatus(x.id)==='active').length;panel.querySelector('[data-q-num="done"]').textContent=done;panel.querySelector('[data-q-num="active"]').textContent=active;}
+function initQuestPanel(){const s=O('ops-q-search'),kind=O('ops-q-kind'),status=O('ops-q-status');if(!s)return;kind.value=qUi.kind;status.value=qUi.status;
+ s.addEventListener('input',e=>{qUi.search=e.target.value;drawQuests()});kind.onchange=e=>{qUi.kind=e.target.value;drawQuests()};status.onchange=e=>{qUi.status=e.target.value;drawQuests()};
+ document.querySelectorAll('[data-q-game]').forEach(b=>b.onclick=()=>{qUi.game=b.dataset.qGame;document.querySelectorAll('[data-q-game]').forEach(n=>n.classList.toggle('sel',n===b));drawQuests()});
+ drawQuests();
+}
+
+const canonical=()=>`<div class="ops-alert">Справочные разделы используют материалы АРХИУМ и ссылки на источники. Неподтверждённые характеристики не выдумываются. Карта схематическая; точные координаты не заявлены.</div>`;
+const sim=()=>`<div class="ops-alert ops-sim">Атмосферная симуляция — не события и не механика оригинальных игр. Все её результаты остаются только в этом браузере.</div>`;
+const btn=(label,act,cls='')=>`<button type="button" class="ops-btn ${cls}" data-op-act="${E(act)}">${label}</button>`;
+const badge=(s)=>`<span class="ops-tag">${E(s)}</span>`;
+const link=(url,label='Источник ↗')=>`<a class="ops-src" href="${E(url)}" target="_blank" rel="noopener noreferrer">${E(label)}</a>`;
+const records=(cat)=>DB.filter(x=>x.cat===cat&&x.availability!=='cut');
+const unique=(arr)=>Array.from(new Set(arr));
+const get=(id)=>DB.find(x=>x.id===id);
+const gameTag=(x)=>x.games||'Не уточнено';
+const findName=(name,cat)=>DB.find(x=>(!cat||x.cat===cat)&&norm(x.name)===norm(name));
+function notice(t){if(typeof toast==='function')toast(t);else alert(t)}
+function go(cat,query='',id=null){openSection(cat,{query});if(id && typeof selectEntry==='function')selectEntry(id,true)}
+function renderNav(){
+ const launch=document.createElement('button');launch.type='button';launch.className='action ops-launch';launch.id='ops-launch';launch.innerHTML='<i>⌬</i> ИНСТРУМЕНТЫ';launch.addEventListener('click',()=>openSection('operations'));
+ const bar=document.querySelector('#home .actionbar');bar.insertBefore(launch,bar.querySelector('.action-power'));
+ const menu=document.createElement('button');menu.type='button';menu.className='ops-shortcut';menu.textContent='⌬ 30 инструментов КПК · ОТКРЫТЬ';menu.addEventListener('click',()=>openSection('operations'));document.querySelector('#home .footnote').before(menu);
+}
+let mode=null,root=null,search='',group='ВСЕ',panel='';
+function operations(){
+ root=O('simple');root.classList.remove('zone-network-simple');root.classList.add('ops-host');root.hidden=false;
+ O('controls').hidden=true;O('section-toolbar').hidden=true;O('window-main').hidden=true;O('map-panel').hidden=true;
+ O('ws-title').textContent=mode?opts.find(x=>x[0]===mode)?.[1]?.toUpperCase()||'ПОЛЕВОЙ АРХИВ':'ПОЛЕВЫЕ ИНСТРУМЕНТЫ';
+ O('ws-symbol').textContent='⌬';
+ root.innerHTML='';
+ const app=document.createElement('div');app.className='ops';root.append(app);
+ if(!mode){app.innerHTML=`<div class="ops-header"><div><strong>⌬ ПОЛЕВЫЕ ИНСТРУМЕНТЫ</strong><p>30 модулей КПК · канонические справки отдельно от офлайн-симуляций</p></div><span>${DB.length} записей базы</span></div><div class="ops-toolbar"><input id="ops-search" placeholder="Поиск инструмента…" value="${E(search)}" aria-label="Поиск инструмента"/><div class="ops-groups">${['ВСЕ','КАНОН','КАРТА','ЛИЧНОЕ','НАСТРОЙКИ','СИМУЛЯЦИЯ'].map(g=>`<button data-op-group="${g}" class="${g===group?'active':''}">${g}</button>`).join('')}</div></div><div class="ops-grid" id="ops-grid"></div>${canonical()}${sim()}`;
+ O('ops-search').addEventListener('input',e=>{search=e.target.value;drawTools()});app.querySelectorAll('[data-op-group]').forEach(b=>b.addEventListener('click',()=>{group=b.dataset.opGroup;app.querySelectorAll('[data-op-group]').forEach(x=>x.classList.toggle('active',x===b));drawTools()}));drawTools();
+ }else{app.innerHTML=`<div class="ops-header"><button class="ops-back" id="ops-back">← ВСЕ ИНСТРУМЕНТЫ</button><span>ПОЛЕВОЙ КПК / ${E(opts.find(x=>x[0]===mode)?.[3]||'АРХИВ')}</span></div><div class="ops-tool-body" id="ops-tool-body"></div>`;O('ops-back').onclick=()=>{mode=null;operations()};renderTool()}
+}
+function drawTools(){const dest=O('ops-grid');if(!dest)return;const arr=opts.filter(t=>(group==='ВСЕ'||t[3]===group)&&norm(t[1]+' '+t[4]).includes(norm(search)));dest.innerHTML=arr.map((t,i)=>`<button class="ops-tile" data-op-mode="${t[0]}"><span class="ops-big">${t[2]}</span><span><b>${E(t[1])}</b><small>${E(t[4])}</small></span><em>${String(opts.indexOf(t)+1).padStart(2,'0')}</em></button>`).join('')||'<p>Ничего не найдено.</p>';dest.querySelectorAll('[data-op-mode]').forEach(b=>b.addEventListener('click',()=>{mode=b.dataset.opMode;operations()}))}
+function renderTool(){const el=O('ops-tool-body');if(!el)return;el.innerHTML=toolHTML(mode);bindTool(el)}
+function toolHTML(m){
+ const r=(cat,n=30)=>records(cat).slice(0,n).map(x=>`<button class="ops-item" data-op-dossier="${E(x.id)}"><b>${E(x.name)}</b><small>${E(gameTag(x))}</small></button>`).join('');
+ switch(m){
+ case 'atlas':return `${canonical()}<h3>Атлас локаций</h3><p>Навигационная схема по трём частям; не совпадает с реальными игровыми координатами.</p><div class="ops-row">${['ТЧ','ЧН','ЗП'].map(g=>btn(gameNames[g],'atlasgame:'+g)).join('')}</div><div id="ops-atlas-list"></div>`;
+ case 'detectors':return `${sim()}<h3>Учебный детектор артефактов</h3><p>«Отклик», «Медведь», «Велес» и «Сварог» существуют в играх. Ниже — наша интерактивная демонстрация, а не точная симуляция игровых алгоритмов.</p><div class="ops-row">${['Отклик','Медведь','Велес','Сварог'].map(x=>btn(x,'detector:'+x)).join('')}</div><div id="ops-detector"></div>`;
+ case 'quests':return `${questTemplate()}`;
+ case 'relations':return `${canonical()}<h3>Связи персонажей</h3><input class="ops-input" id="ops-related-search" placeholder="Имя персонажа, например Стрелок"/><div id="ops-related"></div>`;
+ case 'timeline':return `${canonical()}<h3>Официальная хронология Зоны</h3>${timeline.map(([year,title,desc])=>`<div class="ops-event"><time>${E(year)}</time><b>${E(title)}</b><p>${E(desc)}</p></div>`).join('')}${link(srcs.timeline,'Официальная хронология ↗')}${link(srcs.cs,'Описание Чистого неба ↗')}`;
+ case 'stashes':return `<h3>Мой атлас тайников</h3><p>Личные подсказки. Здесь нет выдуманных официальных координат или содержимого.</p><div class="ops-form"><input class="ops-input" id="ops-stash-place" placeholder="Локация"/><input class="ops-input" id="ops-stash-note" placeholder="Описание тайника"/>${btn('Сохранить тайник','stashadd','primary')}</div><div id="ops-stashes"></div>`;
+ case 'compare':return `${canonical()}<h3>Сравнение оружия</h3><p>Показываются только сведения, которые уже есть в базе; отсутствие числа обозначается явно.</p><div class="ops-row"><select id="ops-weapon-a"></select><select id="ops-weapon-b"></select></div><div id="ops-compare"></div>`;
+ case 'upgrades':return `${canonical()}<h3>Мастерская механиков</h3><p>В «Чистом небе» и «Зове Припяти» существуют ремонт и улучшения оружия и костюмов. Схемы зависят от предмета и механика; неизвестные ветки мы не придумываем.</p><div class="ops-row">${btn('Оружие','jump:weapons')}${btn('Костюмы','jump:suits')}${btn('Снаряжение','jump:gear')}</div>${link(srcs.csworld,'Официально об улучшениях и торговцах')}`;
+ case 'traders':return `${canonical()}<h3>Торговцы</h3><p>Переходы к проверяемым карточкам персонажей. Ассортимент и цены не моделируются.</p>${[['Сидорович','ТЧ, ЧН'],['Бармен','ТЧ'],['Борода','ЗП'],['Сыч','ЗП'],['Гаваец','ЗП'],['Шустрый','ЗП']].map(([name,gm])=>`<div class="ops-line"><b>${name}</b>${badge(gm)}${btn('Искать в досье','query:characters:'+name)}</div>`).join('')}`;
+ case 'bestiary':return `${canonical()}<h3>Бестиарий</h3><p>Прямой переход к каждому виду, без вымышленных характеристик.</p><div class="ops-index">${r('mutants',100)}</div>`;
+ case 'fields':return `${canonical()}<h3>Аномальные поля</h3><div class="ops-row">${['ТЧ','ЧН','ЗП'].map(g=>btn(g,'fieldgame:'+g)).join('')}</div><div id="ops-fields"></div>`;
+ case 'links':return `${canonical()}<h3>Связи досье</h3><p>Найди название объекта, чтобы увидеть все упоминания в остальных карточках.</p><input id="ops-link-q" class="ops-input" placeholder="Например Янтарь"/><div id="ops-links"></div>`;
+ case 'notes':return `<h3>Личные заметки сталкера</h3><p>Хранятся только в этом браузере. Сделай резервную копию в «Офлайн-данные».</p><textarea id="ops-notes" rows="11" class="ops-input" placeholder="Мои наблюдения…">${E(d.notes)}</textarea><div class="ops-row">${btn('Сохранить заметки','notesave','primary')}${btn('Экспортировать','export')}</div>`;
+ case 'markers':return `<h3>Метки на схеме карты</h3><p>Координаты условные — в процентах от нашей схемы, не от карты игры.</p><div class="ops-form"><select id="ops-mark-game">${['ТЧ','ЧН','ЗП'].map(g=>`<option>${g}</option>`).join('')}</select><input class="ops-input" id="ops-mark-place" placeholder="Название точки"/><label>X (%) <input class="ops-input" id="ops-mark-x" type="number" min="0" max="100" value="50"/></label><label>Y (%) <input class="ops-input" id="ops-mark-y" type="number" min="0" max="100" value="50"/></label>${btn('Добавить отметку','markadd','primary')}</div><div id="ops-markers"></div>`;
+ case 'gallery':return `${canonical()}<h3>Галерея</h3><p>Все изображения ниже — иллюстрации и пользовательские нашивки. Не считать их официальными игровыми скриншотами без первоисточника.</p><div class="ops-gallery">${Object.entries(ANOMALY_IMAGES).slice(0,9).map(([id,img])=>`<button data-op-dossier="${id}"><img src="${img}" alt="Иллюстрация" loading="lazy"/><span>${E(get(id)?.name)}</span></button>`).join('')}</div>`;
+ case 'sources':return `${canonical()}<h3>Проверка источников</h3><p>Встроенная база: <b>${DB.length}</b> материалов. У части старых записей точная игра не указана; это не доказательство каноничности.</p><div class="ops-grid-metrics"><span>Со ссылками: <b>${DB.filter(x=>x.sources?.length||x.source).length}</b></span><span>Без указания игры: <b>${DB.filter(x=>!x.games).length}</b></span><span>С архивными дополнениями: <b>${DB.filter(x=>x.archive?.length).length}</b></span></div><div class="ops-links">${Object.entries(srcs).map(([key,url])=>link(url,key+' ↗')).join('')}</div>`;
+ case 'spoilers':return `<h3>Режим без сюжетных спойлеров</h3><label class="ops-check"><input type="checkbox" id="ops-spoilers" ${d.spoilers?'checked':''}/> Скрывать сюжетные карточки с пометкой SPOILER</label><p>Когда режим включён, подробности отмеченных карточек будут скрываться до нажатия «Показать». Это не гарантирует скрытие каждого спойлера в старых материалах.</p>`;
+ case 'commands':return `<h3>Быстрые команды</h3><p>Нажми <kbd>Ctrl+K</kbd> на компьютере или используй поиск ниже на телефоне.</p><input id="ops-cmd-search" class="ops-input" placeholder="Найти персонажа, предмет или аномалию"/><div id="ops-command-results"></div>`;
+ case 'threads':return `${sim()}<h3>Радиоистории</h3><p>Три оригинальные короткие цепочки сообщений. Открой общую «Сеть Зоны», чтобы получать другие сообщения.</p>${['ТЧ|Кордон|Ночью собаки подошли к мосту.','ЧН|Болота|У костра кто-то оставил пустой рюкзак.','ЗП|Затон|На Скадовске говорят о странном сигнале.'].map((t,i)=>`<div class="ops-event">${badge(t.split('|')[0])}<b>${E(t.split('|')[1])}</b><p>${E(t.split('|')[2])}</p>${btn('Продолжение истории','thread:'+i)}</div>`).join('')}${btn('Открыть радиосеть','open:network','primary')}<div id="ops-thread"></div>`;
+ case 'emission':return `${sim()}<h3>Выброс: атмосферный режим</h3><p>Мигание и затемнение экрана, звуковое предупреждение по желанию. Это художественная симуляция.</p>${btn('Сымитировать выброс','emission','primary')}<p id="ops-emission-status"></p>`;
+ case 'weather':return `${sim()}<h3>Визуальная погода КПК</h3><div class="ops-row">${[['off','Без эффекта'],['rain','Дождь'],['fog','Туман'],['storm','Гроза']].map(([id,title])=>btn(title,'weather:'+id,id===d.weather?'primary':'' )).join('')}</div><p>Эффекты отключаются при системном запросе уменьшить анимацию.</p>`;
+ case 'reputation':return `${sim()}<h3>Репутация группировок</h3><p>Только мини-игра — эти отношения не считаются игровыми значениями.</p><div id="ops-rep"></div>`;
+ case 'profile':return `<h3>Личный профиль сталкера</h3><label>Позывной<input id="ops-name" class="ops-input" maxlength="32" value="${E(d.name)}"/></label><p>Все отметки, задания и заметки привязаны к этому браузеру, а не к серверному аккаунту.</p>${btn('Сохранить профиль','profilesave','primary')}<div class="ops-event"><b>◉ ${E(d.name)}</b><p>Заданий отмечено: ${d.quests.length}. Меток на карте: ${d.marks.length}. Тайников: ${d.stashes.length}.</p></div>`;
+ case 'terminals':return `${sim()}<h3>Секретные терминалы</h3>${puzzles.map(([name,_,__,hint],i)=>`<div class="ops-event"><b>${E(name)}</b><p>${E(hint)}</p><input class="ops-input" id="ops-puzzle-${i}" placeholder="Ответ"/>${btn('Проверить','puzzle:'+i)}<span id="ops-puzzle-result-${i}" class="ops-result"></span></div>`).join('')}`;
+ case 'labs':return `${canonical()}<h3>Лаборатории и исследовательские объекты</h3><div class="ops-index">${records('locations').filter(x=>/лаборатор|x-\d|х-\d|НИИ|институт|бункер/i.test(x.name+' '+(x.short||''))).slice(0,40).map(x=>`<button class="ops-item" data-op-dossier="${x.id}"><b>${E(x.name)}</b><small>${E(gameTag(x))}</small></button>`).join('')||'<p>Нет подходящих записей. Они не создаются автоматически.</p>'}</div>`;
+ case 'achievements':return `${canonical()}<h3>Чек-лист игровых целей</h3><p>Это твой личный список прохождения, а не полный перечень официальных достижений.</p><div id="ops-achievements"></div>${link('https://steamcommunity.com/sharedfiles/filedetails/?id=3277198610','Справочник по достижениям ЗП ↗')}`;
+ case 'trilogy':return `${canonical()}<h3>Сравнение трилогии</h3><table class="ops-table"><tr><th></th><th>ТЧ</th><th>ЧН</th><th>ЗП</th></tr><tr><th>Главный герой</th><td>Меченый</td><td>Шрам</td><td>Дегтярёв</td></tr><tr><th>Поиск артефактов</th><td>Подбор на местности</td><td>Специальные детекторы</td><td>Детекторы разных уровней</td></tr><tr><th>Улучшение оружия и брони</th><td>Не как система ЧН/ЗП</td><td>Да</td><td>Да</td></tr><tr><th>Война группировок</th><td>Сюжетные конфликты</td><td>Отдельная система</td><td>Локальные развилки</td></tr></table>${link(srcs.csworld,'Официально о детекторах и ремонте')}`;
+ case 'sound':return `<h3>Оригинальные звуки интерфейса</h3><p>Синтезируются браузером в момент нажатия. Это не извлечённые звуковые файлы из игры.</p><div class="ops-row">${btn('Кнопка','sound:button')}${btn('Радиосигнал','sound:radio')}${btn('Предупреждение','sound:alarm')}</div><label class="ops-check"><input id="ops-sound-enable" type="checkbox" ${d.sound?'checked':''}/> Звук при выборе инструмента</label>`;
+ case 'backup':return `<h3>Резервная копия личного КПК</h3><p>Экспортирует только твои заметки, метки, прогресс и настройки. Большая энциклопедия уже входит в HTML.</p><div class="ops-row">${btn('Скачать JSON','export','primary')}<label class="ops-file-label">Импорт JSON<input type="file" accept=".json,application/json" id="ops-import"/></label></div><p class="ops-alert">Импорт заменит локальные записи. Используй файл, который экспортировал сам.</p>`;
+ case 'adventure':return `${sim()}<h3>Интерактивная история</h3><div id="ops-story"></div>`;
+ default:return '<p>Модуль недоступен.</p>';
+ }
+}
+function bindTool(el){
+ el.querySelectorAll('[data-op-act]').forEach(b=>b.addEventListener('click',()=>action(b.dataset.opAct)));
+ el.querySelectorAll('[data-op-dossier]').forEach(b=>b.addEventListener('click',()=>{const x=get(b.dataset.opDossier);if(x)go(x.cat,x.name,x.id)}));
+ if(mode==='atlas') drawAtlas('ТЧ');
+ if(mode==='detectors') drawDetector('Отклик');
+ if(mode==='quests') initQuestPanel();
+ if(mode==='fields') drawFields('ЗП');
+ if(mode==='relations') {const input=O('ops-related-search');input.addEventListener('input',()=>drawRelated(input.value));drawRelated('Стрелок')}
+ if(mode==='links')O('ops-link-q').addEventListener('input',e=>drawLinks(e.target.value));
+ if(mode==='stashes')drawStashes();
+ if(mode==='markers')drawMarkers();
+ if(mode==='compare')initCompare();
+ if(mode==='commands')O('ops-cmd-search').addEventListener('input',e=>drawCommands(e.target.value,'ops-command-results'));
+ if(mode==='reputation')drawReputation();
+ if(mode==='achievements')drawAchievements();
+ if(mode==='adventure')drawStory();
+ if(mode==='spoilers')O('ops-spoilers').onchange=e=>{d.spoilers=e.target.checked;save();setSpoilers();notice('Режим спойлеров обновлён')};
+ if(mode==='sound')O('ops-sound-enable').onchange=e=>{d.sound=e.target.checked;save()};
+ if(mode==='backup')O('ops-import').onchange=importFile;
+}
+function drawAtlas(g){
+ const root=O('ops-atlas-list');if(!root)return;
+ const nodes=ROUTES[g];const custom=d.marks.filter(x=>x.game===g);
+ root.innerHTML=`<div class="ops-atlas"><svg viewBox="0 0 1000 600" preserveAspectRatio="none" aria-label="Условная карта"><polyline fill="none" stroke="#a68e4a" stroke-width="3" stroke-dasharray="9 9" points="${nodes.map(x=>(x[1]*10)+','+(x[2]*6)).join(' ')}"/></svg>${nodes.map((x,i)=>`<button class="ops-map-dot" style="left:${x[1]}%;top:${x[2]}%" data-op-map="${E(x[0])}"><i></i><span>${E(x[0])}</span></button>`).join('')}${custom.map(x=>`<span class="ops-own-dot" style="left:${x.x}%;top:${x.y}%" title="${E(x.name)}">★</span>`).join('')}</div><p>${badge(g)} ${nodes.length} опорных точек · ${custom.length} личных отметок.</p>${btn('Изменить свои метки','mode:markers')}${btn('Открыть большую карту','open:map')}`;
+ root.querySelectorAll('[data-op-map]').forEach(b=>b.onclick=()=>go('locations',b.dataset.opMap));root.querySelectorAll('[data-op-act]').forEach(b=>b.onclick=()=>action(b.dataset.opAct));
+}
+function drawDetector(det){
+ const node=O('ops-detector');if(!node)return;let chosen=records('artifacts')[Math.floor(Math.random()*records('artifacts').length)];
+ let cls={'Отклик':'det-echo','Медведь':'det-bear','Велес':'det-veles','Сварог':'det-svarog'}[det];
+ node.innerHTML=`<div class="ops-detector ${cls}"><div class="ops-det-head">ДЕТЕКТОР «${E(det).toUpperCase()}»<small>ТРЕНИРОВОЧНЫЙ РЕЖИМ · OFFLINE</small></div><div class="ops-det-screen"><div class="ops-det-pulse"></div><div class="ops-det-point">✧</div><span>СИГНАЛ ЗАФИКСИРОВАН</span></div><div class="ops-det-desc">Учебная цель: <b>${E(chosen.name)}</b>. Прибор имитирует сигнал, а не воспроизводит положение артефакта в игре.</div><div class="ops-row">${btn('Новый учебный сигнал','detector:'+det)}${btn('Открыть артефакт','dossier:'+chosen.id)}</div></div>`;
+ node.querySelectorAll('[data-op-act]').forEach(b=>b.onclick=()=>action(b.dataset.opAct));
+}
+function drawRelated(q){let name=q?.trim()||'Стрелок';const dest=O('ops-related');if(!dest)return;let target=records('characters').find(x=>norm(x.name)===norm(name))||records('characters').find(x=>norm(x.name).includes(norm(name)));
+ if(!target){dest.innerHTML='<p>Начни вводить имя персонажа.</p>';return}
+ const relevant=DB.filter(x=>x.id!==target.id&&norm((x.name||'')+' '+(x.short||'')+' '+(x.detail||'')+' '+(x.body||[]).join(' ')).includes(norm(target.name))).slice(0,40);
+ dest.innerHTML=`<div class="ops-event"><b>${E(target.name)}</b><p>${E(target.short||'')}</p>${btn('Открыть досье','dossier:'+target.id)}</div><h4>Упоминания в других карточках: ${relevant.length}${relevant.length===40?'+':''}</h4><div class="ops-index">${relevant.map(x=>`<button class="ops-item" data-op-dossier="${x.id}"><b>${E(x.name)}</b><small>${E(x.cat)}</small></button>`).join('')||'<p>Связанные записи пока не найдены.</p>'}</div>`;
+ dest.querySelectorAll('[data-op-act]').forEach(b=>b.onclick=()=>action(b.dataset.opAct));dest.querySelectorAll('[data-op-dossier]').forEach(b=>b.onclick=()=>{const x=get(b.dataset.opDossier);go(x.cat,x.name,x.id)});
+}
+function drawStashes(){const out=O('ops-stashes');if(!out)return;out.innerHTML=d.stashes.map((x,i)=>`<div class="ops-line"><span><b>${E(x.place)}</b><small>${E(x.note)}</small></span>${btn('Удалить','stashremove:'+i)}</div>`).join('')||'<p>Твои тайники появятся здесь.</p>';out.querySelectorAll('[data-op-act]').forEach(b=>b.onclick=()=>action(b.dataset.opAct))}
+function drawMarkers(){const out=O('ops-markers');if(!out)return;out.innerHTML=d.marks.map((x,i)=>`<div class="ops-line"><span><b>${E(x.name)} · ${E(x.game)}</b><small>${x.x}%, ${x.y}% (условная схема)</small></span>${btn('Удалить','markremove:'+i)}</div>`).join('')||'<p>Маркеров пока нет.</p>';out.querySelectorAll('[data-op-act]').forEach(b=>b.onclick=()=>action(b.dataset.opAct))}
+function initCompare(){let weapons=records('weapons');for(const [id,offset] of [['ops-weapon-a',0],['ops-weapon-b',1]]){let inp=O(id);inp.innerHTML=weapons.map((x,i)=>`<option value="${E(x.id)}" ${i===offset?'selected':''}>${E(x.name)}</option>`).join('');inp.onchange=drawCompare}drawCompare()}
+function drawCompare(){const a=get(O('ops-weapon-a').value),b=get(O('ops-weapon-b').value),out=O('ops-compare');if(!a||!b)return;
+ const info=(x)=>[x.short||'Не уточнено',x.games||'Не указаны',Array.isArray(x.tags)?x.tags.join(', '):'Нет подтверждённых тегов', x.detail||'Подробности не заполнены'];
+ const A=info(a),B=info(b);
+ out.innerHTML=`<table class="ops-table"><tr><th>Сведения</th><th>${E(a.name)}</th><th>${E(b.name)}</th></tr>${['Описание','Игры','Теги','Данные карточки'].map((k,i)=>`<tr><th>${k}</th><td>${E(A[i])}</td><td>${E(B[i])}</td></tr>`).join('')}</table><div class="ops-row">${btn('Досье первого','dossier:'+a.id)}${btn('Досье второго','dossier:'+b.id)}</div><p class="ops-alert">Числовые характеристики не показаны: в исходной базе нет единой проверенной таблицы параметров по версиям игр.</p>`;
+ out.querySelectorAll('[data-op-act]').forEach(b=>b.onclick=()=>action(b.dataset.opAct));
+}
+function drawFields(g){const out=O('ops-fields');if(!out)return;let vals=records('anomalies').filter(x=>x.anomalyByGame?.[g]||(x.games||'').includes(g));out.innerHTML=vals.map(x=>{const z=x.anomalyByGame?.[g];return `<div class="ops-event"><b>${E(x.name)}</b> ${badge(g)}<p>${z?.locations?.length?E(z.locations.join(' · ')):'Место требует проверки по игре'}</p><p>Артефакты: ${z?.artifacts?.length?E(z.artifacts.join(', ')):'Не подтверждены для этой записи'}</p>${btn('Открыть досье','dossier:'+x.id)}</div>`}).join('')||'<p>Нет записей по фильтру.</p>';out.querySelectorAll('[data-op-act]').forEach(b=>b.onclick=()=>action(b.dataset.opAct))}
+function drawLinks(q){const out=O('ops-links');if(!out)return;const term=q.trim();if(term.length<3){out.innerHTML='<p>Введите минимум три символа.</p>';return}
+ let vals=DB.filter(x=>norm(x.name+' '+(x.short||'')+' '+(x.detail||'')).includes(norm(term))).slice(0,60);out.innerHTML=`<p>Найдено: ${vals.length}${vals.length>=60?'+':''}</p><div class="ops-index">${vals.map(x=>`<button class="ops-item" data-op-dossier="${x.id}"><b>${E(x.name)}</b><small>${E(x.cat)}</small></button>`).join('')}</div>`;out.querySelectorAll('[data-op-dossier]').forEach(b=>b.onclick=()=>{let x=get(b.dataset.opDossier);go(x.cat,x.name,x.id)})}
+function drawCommands(q,id='ops-command-results'){const out=O(id);if(!out)return;let term=q.trim();if(term.length<2){out.innerHTML='';return}
+ const hits=DB.filter(x=>norm(x.name).includes(norm(term))).slice(0,12);out.innerHTML='<div class="ops-index">'+hits.map(x=>`<button class="ops-item" data-op-dossier="${x.id}"><b>${E(x.name)}</b><small>${E(x.cat)} · ${E(gameTag(x))}</small></button>`).join('')+'</div>';out.querySelectorAll('[data-op-dossier]').forEach(b=>b.onclick=()=>{let x=get(b.dataset.opDossier);O('ops-command-modal')?.remove();go(x.cat,x.name,x.id)})}
+function drawReputation(){const out=O('ops-rep');out.innerHTML=records('factions').map(x=>{let score=d.reputation[x.id]||0;return `<div class="ops-line"><span><b>${E(x.name)}</b><small>Условная репутация: ${score}</small></span><span class="ops-row">${btn('−','rep:'+x.id+':-1')}${btn('+','rep:'+x.id+':1')}</span></div>`}).join('');out.querySelectorAll('[data-op-act]').forEach(b=>b.onclick=()=>action(b.dataset.opAct))}
+function drawAchievements(){let arr=[['ТЧ','Пройти основную сюжетную линию'],['ТЧ','Исследовать лаборатории'],['ЧН','Пройти сюжет Шрама'],['ЧН','Найти артефакт с детектором'],['ЗП','Исследовать все три крупные локации'],['ЗП','Найти артефакт каждым типом детектора'],['ЗП','Завершить историю «Логово кровососов»'],['ЗП','Завершить основные задания операции «Фарватер»']];const out=O('ops-achievements');out.innerHTML=arr.map(([g,t],i)=>`<label class="ops-check ops-event"><input data-goal="${i}" type="checkbox" ${d.achievements.includes(i)?'checked':''}/>${badge(g)} ${E(t)}</label>`).join('');out.querySelectorAll('[data-goal]').forEach(b=>b.onchange=()=>{let id=Number(b.dataset.goal);d.achievements=d.achievements.filter(x=>x!==id);if(b.checked)d.achievements.push(id);save()})}
+function drawStory(){const out=O('ops-story');const [title,body,choices]=stories[d.story]||stories[0];out.innerHTML=`<div class="ops-adventure"><h4>${E(title)}</h4><p>${E(body)}</p><div class="ops-row">${choices.map(([title,num])=>btn(E(title),'story:'+num)).join('')}</div></div>`;out.querySelectorAll('[data-op-act]').forEach(b=>b.onclick=()=>action(b.dataset.opAct))}
+let ac=null;
+function tone(kind){try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return;ac=ac||new A();ac.resume();let t=ac.currentTime;let sets=kind==='radio'?[[520,.07],[360,.1],[660,.09]]:kind==='alarm'?[[420,.15],[340,.17],[420,.15]]:[[680,.045]];sets.forEach(([freq,len],i)=>{let o=ac.createOscillator(),gain=ac.createGain();o.type='sine';o.frequency.value=freq;gain.gain.setValueAtTime(.0001,t+i*.11);gain.gain.exponentialRampToValueAtTime(.045,t+i*.11+.008);gain.gain.exponentialRampToValueAtTime(.0001,t+i*.11+len);o.connect(gain);gain.connect(ac.destination);o.start(t+i*.11);o.stop(t+i*.11+len+.01)})}catch(e){}}
+function startWeather(){O('ops-weather-layer')?.remove();if(d.weather==='off'||matchMedia('(prefers-reduced-motion:reduce)').matches)return;let lay=document.createElement('div');lay.id='ops-weather-layer';lay.className='ops-weather '+d.weather;lay.setAttribute('aria-hidden','true');O('screen').append(lay)}
+function setSpoilers(){document.body.classList.toggle('ops-hide-spoilers',d.spoilers)}
+function exportData(){let blob=new Blob([JSON.stringify({format:'pda-zone-fieldbook-v1',exported:new Date().toISOString(),data:d},null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='PDA_ZONE_fieldbook_backup.json';document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+async function importFile(e){let f=e.target.files?.[0];if(!f)return;if(f.size>1000000){notice('Файл резервной копии слишком большой');return}try{let j=JSON.parse(await f.text());if(j.format!=='pda-zone-fieldbook-v1'||!j.data||typeof j.data!=='object')throw Error('Неверный формат');if(!confirm('Заменить личные заметки, метки и прогресс данными из файла?'))return;let z=j.data;d={...d,name:String(z.name||'Странник').slice(0,32),notes:String(z.notes||'').slice(0,50000),marks:Array.isArray(z.marks)?z.marks.slice(0,500):[],stashes:Array.isArray(z.stashes)?z.stashes.slice(0,500):[],quests:Array.isArray(z.quests)?z.quests:[],questStates:(z.questStates&&typeof z.questStates==='object'&&!Array.isArray(z.questStates))?Object.fromEntries(Object.entries(z.questStates).filter(([k,v])=>QUEST_ARCHIVE.some(q=>q.id===k)&&['new','active','done'].includes(v))):{},achievements:Array.isArray(z.achievements)?z.achievements:[],spoilers:!!z.spoilers,weather:['off','rain','fog','storm'].includes(z.weather)?z.weather:'off',reputation:typeof z.reputation==='object'&&z.reputation?z.reputation:{},story:Number.isInteger(z.story)&&z.story>=0&&z.story<stories.length?z.story:0,sound:!!z.sound};save();startWeather();setSpoilers();renderTool();notice('Данные восстановлены')}catch(e){notice('Не удалось загрузить резервную копию: '+e.message)}}
+function action(s){if(d.sound&&!s.startsWith('sound:'))tone('button');let [type,...rest]=s.split(':'),value=rest.join(':');
+ switch(type){
+ case 'mode':mode=value;operations();break;
+ case 'open':openSection(value);break;
+ case 'jump':go(value);break;
+ case 'query':{let index=value.indexOf(':');go(value.slice(0,index),value.slice(index+1));break}
+ case 'dossier':{let x=get(value);if(x)go(x.cat,x.name,x.id);break}
+ case 'atlasgame':drawAtlas(value);break;
+ case 'detector':drawDetector(value);break;
+ case 'questgame':qUi.game=value;drawQuests();break;
+ case 'fieldgame':drawFields(value);break;
+ case 'stashadd':{const place=O('ops-stash-place').value.trim().slice(0,90),note=O('ops-stash-note').value.trim().slice(0,600);if(!place||!note){notice('Заполни место и подсказку');break}d.stashes.unshift({place,note});save();O('ops-stash-place').value='';O('ops-stash-note').value='';drawStashes();break}
+ case 'stashremove':d.stashes.splice(Number(value),1);save();drawStashes();break;
+ case 'notesave':d.notes=O('ops-notes').value.slice(0,50000);save();notice('Заметки сохранены локально');break;
+ case 'markadd':{let name=O('ops-mark-place').value.trim().slice(0,90),x=Number(O('ops-mark-x').value),y=Number(O('ops-mark-y').value);if(!name||!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>100||y<0||y>100){notice('Укажи название и координаты от 0 до 100');break}d.marks.unshift({name,game:O('ops-mark-game').value,x,y});save();O('ops-mark-place').value='';drawMarkers();break}
+ case 'markremove':d.marks.splice(Number(value),1);save();drawMarkers();break;
+ case 'thread':{let text=['Короткий ответ из Кордона: «Была вспышка у моста. Если пойдёшь — бери болты».','Ответ с Болот: «Следы уходят к старой тропе. Дальше никто не проверял».','Сигнал с Затона: «Частота снова молчит. Возможно, это просто помехи».'][Number(value)]||'';O('ops-thread').innerHTML=`<div class="ops-event"><b>ПОСЛЕДУЮЩИЙ СИГНАЛ</b><p>${E(text)}</p></div>`;break}
+ case 'emission':{const overlay=document.createElement('div');overlay.className='ops-emission';overlay.setAttribute('role','alert');overlay.innerHTML='<div><strong>☢ ВНИМАНИЕ: ВЫБРОС</strong><p>СИМУЛЯЦИЯ / СРОЧНО НАЙТИ УКРЫТИЕ</p><button type="button">ЗАКРЫТЬ</button></div>';O('screen').append(overlay);overlay.querySelector('button').onclick=()=>overlay.remove();if(d.sound)tone('alarm');setTimeout(()=>overlay.remove(),8000);break}
+ case 'weather':d.weather=value;save();startWeather();renderTool();break;
+ case 'rep':{let [id,num]=value.split(':');d.reputation[id]=Math.max(-5,Math.min(5,(d.reputation[id]||0)+Number(num)));save();drawReputation();break}
+ case 'profilesave':d.name=O('ops-name').value.trim().slice(0,32)||'Странник';save();renderTool();break;
+ case 'puzzle':{let n=Number(value),t=O('ops-puzzle-'+n).value.trim();O('ops-puzzle-result-'+n).textContent=norm(t)===norm(puzzles[n][2])?' ДОСТУП ОТКРЫТ ✓':' НЕВЕРНЫЙ КОД';break}
+ case 'sound':tone(value);break;
+ case 'story':d.story=Number(value);save();drawStory();break;
+ case 'export':exportData();break;
+ }
+}
+const openBase=openSection;
+openSection=function(cat,opt){
+ if(cat==='operations'){
+  if(current!=='operations')openBase('settings');
+  current='operations';mode=null;operations();return;
+ }
+ O('simple').classList.remove('ops-host');
+ return openBase(cat,opt);
+};
+// One global keyboard listener for the mini command palette.
+document.addEventListener('keydown',e=>{
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){
+  e.preventDefault();
+  if(O('ops-command-modal')){O('ops-command-modal').remove();return}
+  const modal=document.createElement('div');modal.id='ops-command-modal';modal.innerHTML='<div class="ops-command-box"><header>⌕ БЫСТРЫЙ ПОИСК <button aria-label="Закрыть">×</button></header><input class="ops-input" placeholder="Досье, персонажи, локации…" autofocus/><div id="ops-command-modal-results"></div></div>';
+  O('screen').append(modal);modal.onclick=e=>{if(e.target===modal)modal.remove()};modal.querySelector('button').onclick=()=>modal.remove();modal.querySelector('input').oninput=e=>drawCommands(e.target.value,'ops-command-modal-results');modal.querySelector('input').focus();
+ }else if(e.key==='Escape')O('ops-command-modal')?.remove();
+});
+// Mark as spoiler where the existing database explicitly says so.
+const selectBase=selectEntry;
+selectEntry=function(id,mobile){const out=selectBase(id,mobile);let x=get(id);let rr=O('reading');rr.classList.toggle('ops-spoiler-dossier',!!x?.spoiler);if(x?.spoiler&&d.spoilers){let shield=document.createElement('div');shield.className='ops-spoiler-shield';shield.innerHTML='<b>СЮЖЕТНЫЕ СПОЙЛЕРЫ СКРЫТЫ</b><button type="button">Показать содержание</button>';rr.prepend(shield);shield.querySelector('button').onclick=()=>shield.remove()}return out};
+// Preserve the existing radio system, journal, local search, original dossier data and artwork.
+renderNav();setSpoilers();startWeather();
+})();
+
+</script>
+<script>
+/* АРХИУМ v3.40 — unified, offline trilogy map. Diagrammatic geographic placement. */
+(()=>{
+'use strict';
+const elMap=id=>document.getElementById(id);
+const normalizeMap=s=>String(s||'').toLocaleLowerCase('ru').replace(/ё/g,'е').replace(/[«»"']/g,'').trim();
+const safeText=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ALL='ТЧ,ЧН,ЗП';
+// Coordinates are a readable illustrative layout, NOT satellite GPS or game-level coordinates.
+// Names, game membership and internal levels follow published trilogy location listings.
+const NODES=[
+ ['swamps','Болота',15,89,'ЧН','surface','Стартовая область «Чистого неба», база одноимённой группировки.'],
+ ['cordon','Кордон',48,93,'ТЧ,ЧН','surface','Южные подступы Зоны, деревня новичков и военные блокпосты.'],
+ ['garbage','Свалка',47,81,'ТЧ,ЧН','surface','Перекрёсток путей между Кордоном, Агропромом, Тёмной долиной и Ростоком.'],
+ ['agro','НИИ «Агропром»',25,73,'ТЧ,ЧН','surface','Промышленная и исследовательская территория, связанная с подземельями Агропрома.'],
+ ['aground','Подземелья Агропрома',27,79,'ТЧ,ЧН','lab','Подземные тоннели и помещения под комплексом Агропрома.'],
+ ['dark','Тёмная долина',75,79,'ТЧ,ЧН','surface','Промышленная зона, база «Свободы» в «Чистом небе» и путь к X18 в ТЧ.'],
+ ['x18','Лаборатория X18',79,85,'ТЧ','lab','Подземная секретная лаборатория под Тёмной долиной.'],
+ ['bar','Бар / Росток',50,68,'ТЧ','surface','Территория под контролем «Долга», бар «100 рентген», Арена.'],
+ ['wild','Дикая территория',40,59,'ТЧ','surface','Промышленный сектор Ростока, путь к Янтарю.'],
+ ['yantar','Янтарь',29,49,'ТЧ,ЧН','surface','Научные исследования, пси-воздействия и лаборатория X16 (в ТЧ).'],
+ ['x16','Лаборатория X16',24,53,'ТЧ','lab','Лаборатория на Янтаре, связанная с пси-установкой.'],
+ ['army','Армейские склады',67,60,'ТЧ,ЧН','surface','Военная территория и важный участок противостояния группировок.'],
+ ['radar','Радар / Выжигатель',60,42,'ТЧ','surface','Путь к Припяти, установка «Выжигатель мозгов» в ТЧ.'],
+ ['x10','Лаборатория X10',57,47,'ТЧ','lab','Подземный комплекс, связанный с Выжигателем мозгов.'],
+ ['red','Рыжий лес',78,45,'ЧН','surface','Отдельная локация «Чистого неба», путь к Лиманску.'],
+ ['limansk','Лиманск',89,32,'ЧН','surface','Городская локация поздних глав «Чистого неба».'],
+ ['hospital','Заброшенный госпиталь',92,23,'ЧН','lab','Сюжетная локация на пути к ЧАЭС в «Чистом небе».'],
+ ['pripyat','Припять',52,25,'ТЧ,ЗП','surface','Город присутствует в ТЧ и ЗП, но представлен разными игровыми уровнями.'],
+ ['npp','ЧАЭС',55,10,'ТЧ,ЧН','surface','Чернобыльская АЭС — финальная территория сюжетов ТЧ и ЧН.'],
+ ['sarc','Саркофаг',48,7,'ТЧ','lab','Внутренние уровни энергоблока ЧАЭС в ТЧ.'],
+ ['monolith','Центр управления Монолитом',64,6,'ТЧ','lab','Внутренний финальный уровень ТЧ.'],
+ ['zaton','Затон',11,25,'ЗП','surface','Северный игровой регион «Зова Припяти»: баржа «Скадовск» и множество аномальных полей.'],
+ ['jupiter','Окрестности «Юпитера»',27,34,'ЗП','surface','Район завода «Юпитер», станции Янов и бункера учёных.'],
+ ['pripyat1','Путепровод «Припять-1»',40,31,'ЗП','lab','Подземный маршрут в Припять в «Зове Припяти».'],
+ ['x8','Лаборатория X8',61,29,'ЗП','lab','Подземная лаборатория под Припятью в ЗП.']
+].map(([id,name,x,y,games,type,description])=>({id,name,x,y,games:games.split(','),type,description}));
+const INDEX=Object.fromEntries(NODES.map(n=>[n.id,n]));
+// Confirmed story progression / level associations. These are NOT claims of unrestricted two-way passages.
+const EDGES={
+ 'ТЧ':[['cordon','garbage'],['garbage','agro'],['agro','aground'],['garbage','dark'],['dark','x18'],['garbage','bar'],['bar','wild'],['wild','yantar'],['yantar','x16'],['bar','army'],['army','radar'],['radar','x10'],['radar','pripyat'],['pripyat','npp'],['npp','sarc'],['sarc','monolith']],
+ 'ЧН':[['swamps','cordon'],['cordon','garbage'],['garbage','agro'],['garbage','dark'],['dark','army'],['agro','yantar'],['yantar','red'],['red','limansk'],['limansk','hospital'],['hospital','npp']],
+ 'ЗП':[['zaton','jupiter'],['jupiter','pripyat1'],['pripyat1','pripyat'],['pripyat','x8']]
+};
+const POI=[
+ {id:'b1',name:'База «Чистого неба»',at:'swamps',g:'ЧН',type:'base',description:'Основной лагерь группировки в Болотах.'},
+ {id:'b2',name:'База «Долга»',at:'bar',g:'ТЧ',type:'base',description:'База на территории Ростока.'},
+ {id:'b3',name:'База «Долга»',at:'agro',g:'ЧН',type:'base',description:'База в НИИ «Агропром».'},
+ {id:'b4',name:'База «Свободы»',at:'army',g:'ТЧ',type:'base',description:'Расположение группировки на Армейских складах.'},
+ {id:'b5',name:'База «Свободы»',at:'dark',g:'ЧН',type:'base',description:'База «Свободы» в Тёмной долине.'},
+ {id:'b6',name:'Бункер учёных',at:'yantar',g:'ТЧ,ЧН',type:'base',description:'Исследовательская база на Янтаре.'},
+ {id:'b7',name:'Баржа «Скадовск»',at:'zaton',g:'ЗП',type:'base',description:'Общая база сталкеров и торговцев на Затоне.'},
+ {id:'b8',name:'Станция Янов',at:'jupiter',g:'ЗП',type:'base',description:'Основной лагерь сталкеров и группировок в районе Юпитера.'},
+ {id:'b9',name:'Бункер учёных',at:'jupiter',g:'ЗП',type:'base',description:'Исследовательская база близ Юпитера.'},
+ {id:'a1',name:'Аномальные поля Затона',at:'zaton',g:'ЗП',type:'anomaly',description:'Набор аномальных полей региона. Точное положение отдельного поля здесь не указано.'},
+ {id:'a2',name:'Аномальные поля Юпитера',at:'jupiter',g:'ЗП',type:'anomaly',description:'Район содержит несколько различных аномальных полей; точные позиции открываются на карте уровня.'},
+ {id:'a3',name:'Аномальные участки Янтаря',at:'yantar',g:'ТЧ,ЧН',type:'anomaly',description:'Опасные аномальные и пси-участки; положение на общей карте условное.'},
+ {id:'a4',name:'Аномальные зоны Рыжего леса',at:'red',g:'ЧН',type:'anomaly',description:'Опасные участки Рыжего леса в ЧН, не точные координаты.'}
+];
+const STORE='pda340_global_map_marks';
+let marks=[];try{const m=JSON.parse(localStorage.getItem(STORE)||'[]');if(Array.isArray(m))marks=m.filter(x=>Number.isFinite(x.x)&&Number.isFinite(x.y)&&typeof x.name==='string').slice(0,150)}catch(_){marks=[]}
+const saveMarks=()=>{try{localStorage.setItem(STORE,JSON.stringify(marks))}catch(_){}}
+let selected='cordon', search='',layers={underground:true,bases:false,anomalies:false,marks:true,links:true};
+let markerMode=false,pendingPoint=null,pointerTouches=new Map(),gesture=null;
+const GAME_COLORS={'ТЧ':'#e5bb63','ЧН':'#88c5d9','ЗП':'#b8d58a'};
+function filterGames(){return game==='all'?['ТЧ','ЧН','ЗП']:[game]}
+function visible(n){return n.games.some(g=>filterGames().includes(g))&&(n.type!=='lab'||layers.underground)&&(!search||normalizeMap(n.name+' '+n.description).includes(normalizeMap(search)))}
+function visiblePoi(p){return (p.type==='base'?layers.bases:layers.anomalies)&&p.g.split(',').some(g=>filterGames().includes(g))&&(!search||normalizeMap(p.name+' '+p.description).includes(normalizeMap(search)))}
+function compatible(n){return n.games.some(g=>filterGames().includes(g))}
+function parentIdFor(p){return p.at}
+function mapTags(n){return n.games.map(g=>`<span class="gm-tag gm-${g==='ТЧ'?'soc':g==='ЧН'?'cs':'cop'}">${g}</span>`).join('')}
+function saveToClipboard(text){if(navigator.clipboard?.writeText){navigator.clipboard.writeText(text).then(()=>{try{toast('Список скопирован')}catch(_){}}).catch(()=>{})}else{try{toast('Можно скопировать этот текст вручную')}catch(_){}}}
+function findDossier(n){if(typeof DB==='undefined')return null;const names=[n.name];const variants={
+ cordon:['Кордон'],swamps:['Болота','Великие болота'],garbage:['Свалка'],agro:['Агропром','НИИ «Агропром»'],aground:['Подземелья Агропрома','Подземелье Агропрома'],dark:['Тёмная долина'],x18:['X18','Х18','Лаборатория Х-18','Лаборатория X-18'],bar:['Бар','Росток'],wild:['Дикая территория'],yantar:['Янтарь'],x16:['X16','Х16'],army:['Армейские склады','Военные склады'],radar:['Радар','Выжигатель мозгов','Рыжий лес'],x10:['X10','X-10','Х10'],red:['Рыжий лес'],limansk:['Лиманск'],hospital:['Госпиталь','Заброшенный госпиталь'],pripyat:['Припять'],npp:['ЧАЭС','Чернобыльская АЭС'],sarc:['Саркофаг'],monolith:['Центр управления Монолитом'],zaton:['Затон'],jupiter:['Окрестности «Юпитера»','Юпитер','Окрестности Юпитера'],pripyat1:['Путепровод «Припять-1»','Припять-1'],x8:['X8','X-8','Х8']};
+ const opts=variants[n.id]||names;
+ return DB.find(x=>x.cat==='locations'&&opts.some(t=>normalizeMap(x.name)===normalizeMap(t)))||DB.find(x=>x.cat==='locations'&&opts.some(t=>normalizeMap(x.name).includes(normalizeMap(t))&&normalizeMap(t).length>5))||null;
+}
+function baseShape(p,n){const h=(p.type==='base'? -2.2:2.6);return {x:n.x+3.2,y:n.y+h}}
+function createSvg(tag,attrs={}){let e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));return e}
+function drawLinks(root){if(!layers.links)return;const svg=createSvg('svg',{viewBox:'0 0 1000 1000',preserveAspectRatio:'none',class:'gm-paths'});const defs=createSvg('defs');
+ Object.entries(GAME_COLORS).forEach(([g,c])=>{const id='gm-arrow-'+(g==='ТЧ'?'soc':g==='ЧН'?'cs':'cop');const marker=createSvg('marker',{id,markerWidth:6,markerHeight:6,refX:3,refY:3,orient:'auto'});marker.append(createSvg('path',{d:'M0 0 L6 3 L0 6 Z',fill:c,opacity:'.7'}));defs.append(marker)});svg.append(defs);
+ for(const g of filterGames()){for(const [a,b] of EDGES[g]){const from=INDEX[a],to=INDEX[b];if(!from||!to||!layers.underground&&(from.type==='lab'||to.type==='lab'))continue;
+ const line=createSvg('line',{x1:from.x*10,y1:from.y*10,x2:to.x*10,y2:to.y*10,stroke:GAME_COLORS[g], 'stroke-width':'2.5','stroke-dasharray':'7 11',opacity: game==='all'?'.45':'.7','vector-effect':'non-scaling-stroke'});
+ if(g==='ТЧ')line.setAttribute('class','gm-glow-trail');svg.append(line)}}root.append(svg)}
+function render(){if(current!=='map')return;const canvas=elMap('map-canvas'),area=elMap('map-area'),panel=elMap('map-panel');if(!canvas||!area)return;
+ panel.classList.add('gm-wrap');buildBar(panel);canvas.replaceChildren();canvas.classList.add('gm-board');canvas.setAttribute('aria-label','Схематическая общая карта Зоны');
+ const bg=document.createElement('div');bg.className='gm-terrain';canvas.append(bg);
+ const coord=document.createElement('div');coord.className='gm-coordinate-grid';canvas.append(coord);
+ let north=document.createElement('div');north.className='gm-north';north.textContent='N ↑';canvas.append(north);
+ let south=document.createElement('div');south.className='gm-south';south.textContent='ПОДХОДЫ К ЗОНЕ';canvas.append(south);
+ drawLinks(canvas);
+ let count=0;
+ for(const n of NODES){if(!visible(n))continue;count++;const b=document.createElement('button');b.type='button';b.className='gm-node '+(n.type==='lab'?'gm-lab':'gm-surface')+(n.id===selected?' gm-selected':'');b.style.left=n.x+'%';b.style.top=n.y+'%';b.dataset.mapId=n.id;b.setAttribute('aria-label',n.name+' — '+n.games.join(', '));b.title=n.name+' / '+n.games.join(' · ');
+ b.innerHTML=`<span class="gm-dot"></span><span class="gm-node-label">${safeText(n.name)}</span>`;b.addEventListener('click',()=>{markerMode=false;selected=n.id;choose(n.id)});canvas.append(b)}
+ for(const p of POI){if(!visiblePoi(p))continue;let n=INDEX[parentIdFor(p)];const po=baseShape(p,n),b=document.createElement('button');b.className='gm-poi '+p.type;b.type='button';b.dataset.mapId=p.id;b.style.left=po.x+'%';b.style.top=po.y+'%';b.title=p.name+' / '+n.name;b.setAttribute('aria-label',p.name+', область '+n.name);b.innerHTML=p.type==='base'?'⌂':'✧';b.addEventListener('click',()=>{selected=p.id;choose(p.id)});canvas.append(b)}
+ if(layers.marks){for(const m of marks){const b=document.createElement('button');b.type='button';b.className='gm-userpin'+(selected===m.id?' gm-selected':'');b.dataset.mapId=m.id;b.style.left=m.x+'%';b.style.top=m.y+'%';b.title=m.name;b.textContent='⚑';b.onclick=()=>{selected=m.id;choose(m.id)};canvas.append(b)}}
+ const countEl=elMap('gm-counter');if(countEl)countEl.textContent=`${count} ЛОКАЦИЙ · ${filterGames().join(' / ')}`;
+ updateDetails();applyMapTransform();
+}
+function buildBar(panel){let bar=elMap('gm-toolbar');if(!bar){bar=document.createElement('div');bar.id='gm-toolbar';bar.className='gm-toolbar';panel.insertBefore(bar,elMap('map-area'))}
+ bar.innerHTML=`<div class="gm-toolbar-head"><strong>ОБЩАЯ КАРТА ЗОНЫ</strong><small>ТРИЛОГИЯ · УСЛОВНАЯ КОМПОНОВКА</small></div><div class="gm-chips">
+ <label title="Внутренние уровни и лаборатории"><input type="checkbox" data-layer="underground" ${layers.underground?'checked':''}><span>Лаборатории</span></label>
+ <label><input type="checkbox" data-layer="bases" ${layers.bases?'checked':''}><span>Базы</span></label>
+ <label><input type="checkbox" data-layer="anomalies" ${layers.anomalies?'checked':''}><span>Аномалии</span></label>
+ <label><input type="checkbox" data-layer="links" ${layers.links?'checked':''}><span>Маршруты</span></label>
+ <label><input type="checkbox" data-layer="marks" ${layers.marks?'checked':''}><span>Мои метки</span></label></div><span id="gm-counter" class="gm-counter"></span>`;
+ bar.querySelectorAll('input').forEach(i=>{i.addEventListener('change',()=>{layers[i.dataset.layer]=i.checked;render()})});
+ if(!elMap('gm-controls')){const ctrl=document.createElement('div');ctrl.className='gm-floating';ctrl.id='gm-controls';ctrl.innerHTML=`<button type="button" data-zoom="in" aria-label="Приблизить">＋</button><button type="button" data-zoom="out" aria-label="Отдалить">−</button><button type="button" data-zoom="reset" aria-label="Сбросить масштаб">⌖</button>`;elMap('map-area').append(ctrl);ctrl.addEventListener('click',e=>{const z=e.target.closest('[data-zoom]');if(!z)return;if(z.dataset.zoom==='reset'){mapScale=1;mapDX=mapDY=0}else mapScale=Math.max(0.8,Math.min(3.4,mapScale+(z.dataset.zoom==='in'?.25:-.25)));applyMapTransform()})}
+ const input=elMap('section-search');if(input){input.placeholder='⌕ Найти локацию на общей карте…';input.setAttribute('aria-label','Поиск по общей карте');input.value=search}
+}
+function choose(id){selected=id;const canvas=elMap('map-canvas');if(canvas)canvas.querySelectorAll('[data-map-id]').forEach(b=>b.classList.toggle('gm-selected',b.dataset.mapId===id));updateDetails()}
+function selectClosest(id){choose(id);const n=INDEX[id];if(!n)return;const r=elMap('map-area').getBoundingClientRect();mapDX=(.5-n.x/100)*r.width*mapScale;mapDY=(.5-n.y/100)*r.height*mapScale;applyMapTransform()}
+function chooseDossier(n){const x=findDossier(n);if(x){openSection('locations',{query:x.name,game:'all'});selectEntry(x.id,true)}else{try{toast('Для этой локации отдельного досье пока нет')}catch(_){}}}
+function updateDetails(){if(current!=='map')return;const root=elMap('map-side');if(!root)return;root.classList.add('gm-side');root.replaceChildren();
+ const label=document.createElement('div');label.className='gm-side-meta';label.textContent='АРХИУМ / КАРТОГРАФИЯ';root.append(label);
+ const n=INDEX[selected],p=POI.find(x=>x.id===selected),m=marks.find(x=>x.id===selected);
+ if(n){const h=document.createElement('h3');h.textContent=n.name;root.append(h);const g=document.createElement('div');g.className='gm-games';g.innerHTML=mapTags(n);root.append(g);const desc=document.createElement('p');desc.textContent=n.description;root.append(desc);
+ const source=document.createElement('div');source.className='gm-callout';source.innerHTML=`<b>${n.type==='lab'?'ПОДЗЕМНЫЙ УРОВЕНЬ':'НАЗЕМНАЯ ЛОКАЦИЯ'}</b><span>Положение на объединённой карте приблизительное. Уровни игр не имеют единой точной координатной сетки.</span>`;root.append(source);
+ const outgoing=[];for(const g of n.games){for(const [a,b] of EDGES[g]){if(a===n.id&&INDEX[b])outgoing.push([g,INDEX[b]]);if(b===n.id&&INDEX[a])outgoing.push([g,INDEX[a]])}}
+ if(outgoing.length){let sub=document.createElement('div');sub.className='gm-side-sub';sub.textContent='СВЯЗАННЫЕ УРОВНИ / СЮЖЕТ';root.append(sub);const list=document.createElement('div');list.className='gm-neighbors';const unique=new Set();for(const [g,near] of outgoing){const k=g+'-'+near.id;if(unique.has(k))continue;unique.add(k);let b=document.createElement('button');b.textContent=`${near.name} · ${g}`;b.onclick=()=>{search='';selectClosest(near.id)};list.append(b)}root.append(list)}
+ const dossier=findDossier(n),b=document.createElement('button');b.type='button';b.className='gm-primary';b.textContent=dossier?'ОТКРЫТЬ ДОСЬЕ ↗':'ДОСЬЕ ЕЩЁ НЕТ';b.disabled=!dossier;b.onclick=()=>chooseDossier(n);root.append(b);
+ }else if(p){let base=INDEX[p.at];let h=document.createElement('h3');h.textContent=p.name;root.append(h);let x=document.createElement('p');x.textContent=p.description;root.append(x);let t=document.createElement('div');t.className='gm-callout';t.textContent='Метка указывает на регион '+base.name+', а не на точные координаты объекта.';root.append(t);let b=document.createElement('button');b.className='gm-primary';b.textContent='К ЛОКАЦИИ ↗';b.onclick=()=>{selected=base.id;selectClosest(base.id)};root.append(b);
+ }else if(m){let h=document.createElement('h3');h.textContent=m.name;root.append(h);let p=document.createElement('p');p.textContent=m.note||'Личная метка.';root.append(p);let b=document.createElement('button');b.className='gm-primary';b.textContent='УДАЛИТЬ МЕТКУ';b.onclick=()=>{if(!confirm('Удалить метку «'+m.name+'»?'))return;marks=marks.filter(v=>v.id!==m.id);saveMarks();selected='cordon';render()};root.append(b)}
+ const buttons=document.createElement('div');buttons.className='gm-secondary-actions';buttons.innerHTML='<button type="button" id="gm-addmark">✚ МОЯ МЕТКА</button><button type="button" id="gm-export">⇩ ЭКСПОРТ МЕТОК</button>';root.append(buttons);
+ buttons.querySelector('#gm-addmark').onclick=()=>{markerMode=!markerMode;pendingPoint=null;buttons.querySelector('#gm-addmark').classList.toggle('gm-active',markerMode);let x=elMap('gm-prompt');if(x)x.remove();if(markerMode){let msg=document.createElement('div');msg.className='gm-callout';msg.id='gm-prompt';msg.textContent='Нажмите в свободной точке карты, чтобы поставить свою метку.';root.append(msg)}};
+ buttons.querySelector('#gm-export').onclick=()=>{const blob=new Blob([JSON.stringify({format:'PDA_ZONE_MAP_MARKS',version:1,marks},null,2)],{type:'application/json'});const a=document.createElement('a');const url=URL.createObjectURL(blob);a.href=url;a.download='PDA_ZONE_MAP_MARKS.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1200)};
+ const footer=document.createElement('div');footer.className='gm-citation';footer.innerHTML='<b>Источники перечней:</b><a href="https://stalker.fandom.com/wiki/List_of_locations" target="_blank" rel="noopener noreferrer">Список локаций трилогии ↗</a><a href="https://cs.stalker-game.com/en/?page=game" target="_blank" rel="noopener noreferrer">Официальный сайт ЧН ↗</a><a href="https://github.com/thexii/stalker-map" target="_blank" rel="noopener noreferrer">Карты, построенные из игровых данных ↗</a>';root.append(footer);
+}
+function markerForm(x,y){markerMode=false;pendingPoint={x,y};const root=elMap('map-side');const form=document.createElement('form');form.className='gm-markerform';form.innerHTML=`<label>НАЗВАНИЕ МЕТКИ<input name="name" maxlength="56" placeholder="Например: интересное место" required></label><label>ЗАМЕТКА<textarea name="note" maxlength="600" rows="3" placeholder="Что здесь отметить?"></textarea></label><div><button type="submit" class="gm-primary">СОХРАНИТЬ</button><button type="button" data-cancel>ОТМЕНА</button></div>`;root.prepend(form);form.querySelector('[data-cancel]').onclick=()=>{form.remove();pendingPoint=null};form.onsubmit=e=>{e.preventDefault();let name=form.elements.name.value.trim();if(!name)return;marks.push({id:'mark-'+Date.now().toString(36)+'-'+Math.floor(Math.random()*1000),name,note:form.elements.note.value.trim(),x,y});saveMarks();selected=marks[marks.length-1].id;pendingPoint=null;render()};form.elements.name.focus()}
+function mapZoom(delta){mapScale=Math.max(.8,Math.min(3.4,mapScale+delta));applyMapTransform()}
+function toggleSearch(e){if(current!=='map')return;search=e.target.value.trim();if(search){const candidates=NODES.filter(n=>compatible(n)&&normalizeMap(n.name).includes(normalizeMap(search)));if(candidates.length)selected=candidates[0].id}render()}
+// Replace the old single-game path layout, without disturbing the other 637 source records.
+renderMap=render;updateMapDetails=updateDetails;
+const originalMapOpen=openSection;
+openSection=function(cat,opt={}){if(cat==='map'){const cfg={...opt,game:opt.game||'all'};game=cfg.game;currentMapGame=cfg.game;search='';const r=originalMapOpen(cat,cfg);render();return r}return originalMapOpen(cat,opt)};
+// Shared map tabs dispatch to overridden renderMap. Old map tab handler sets currentMapGame,
+// but map rendering intentionally uses the actual selected game tab variable `game`.
+elMap('section-search')?.addEventListener('input',toggleSearch);
+// Coordinate-label search input survives internal render after changing games.
+elMap('map-area')?.addEventListener('click',e=>{if(current!=='map'||!markerMode||e.target.closest('button'))return;const rect=elMap('map-area').getBoundingClientRect();const pX=((e.clientX-rect.left-rect.width/2-mapDX)/mapScale+rect.width/2)/rect.width*100;const pY=((e.clientY-rect.top-rect.height/2-mapDY)/mapScale+rect.height/2)/rect.height*100;const x=Math.max(4,Math.min(96,pX)),y=Math.max(4,Math.min(96,pY));markerForm(Math.round(x*10)/10,Math.round(y*10)/10)});
+// Finer zoom range and trackpad scroll; stop the older handler from running twice.
+elMap('map-area')?.addEventListener('wheel',e=>{if(current!=='map')return;e.preventDefault();e.stopImmediatePropagation();mapZoom(e.deltaY<0?.17:-.17)},{capture:true,passive:false});
+// Touch pan + pinch zoom; keep regular mouse dragging supplied by original site.
+const touchArea=elMap('map-area');
+if(touchArea){touchArea.addEventListener('pointerdown',e=>{if(current!=='map'||e.pointerType==='mouse'||e.target.closest('button,input'))return;e.stopPropagation();pointerTouches.set(e.pointerId,{x:e.clientX,y:e.clientY});try{touchArea.setPointerCapture(e.pointerId)}catch(_){};gesture=null},{capture:true});
+ touchArea.addEventListener('pointermove',e=>{if(current!=='map'||e.pointerType==='mouse'||!pointerTouches.has(e.pointerId))return;e.stopImmediatePropagation();const prev=pointerTouches.get(e.pointerId);pointerTouches.set(e.pointerId,{x:e.clientX,y:e.clientY});const pt=[...pointerTouches.values()];if(pt.length===1){mapDX+=e.clientX-prev.x;mapDY+=e.clientY-prev.y}else if(pt.length>=2){const dist=Math.hypot(pt[0].x-pt[1].x,pt[0].y-pt[1].y);if(gesture){mapScale=Math.max(.8,Math.min(3.4,gesture.scale*dist/gesture.dist))}else gesture={dist,scale:mapScale}}applyMapTransform()},{capture:true});
+ for(const k of ['pointerup','pointercancel'])touchArea.addEventListener(k,e=>{if(e.pointerType==='mouse')return;if(pointerTouches.has(e.pointerId)){e.stopPropagation();pointerTouches.delete(e.pointerId);gesture=null}},{capture:true});}
+// The atlas utility should lead to the complete map rather than displaying a second conflicting scheme.
+document.addEventListener('click',e=>{const atlas=e.target.closest('[data-op-mode="atlas"],[data-ops-mode="atlas"]');if(atlas){e.preventDefault();e.stopPropagation();openSection('map')}},true);
+// Public debug surface solely for automatic interaction tests.
+window.PDA_ZONE_MAP_TEST={nodes:NODES.length,routeEdges:Object.values(EDGES).reduce((a,b)=>a+b.length,0),current:()=>current,game:()=>game,marks:()=>marks.length,render,select:id=>selectClosest(id)};
+})();
+
+</script><style>
+/* АРХИУМ 4.0 — Field Center */
+.v4-launch{border:1px solid #8fae69!important;color:#d9f8ad!important;background:linear-gradient(120deg,#243d29,#102019)!important;box-shadow:0 0 17px #8bc66b33;font-weight:800;letter-spacing:.08em}
+.v4-overlay[hidden]{display:none}
+.v4-overlay{position:fixed;inset:0;z-index:99999;background:#030905e8;display:flex;align-items:center;justify-content:center;padding:12px;color:#d5e8cb;font:14px/1.5 system-ui,sans-serif}
+.v4-panel{width:min(1060px,100%);max-height:94dvh;overflow:auto;background:linear-gradient(160deg,#192b20,#09130e 70%);border:1px solid #72966c;box-shadow:0 20px 80px #000;border-radius:12px;padding:clamp(14px,3vw,28px)}
+.v4-panel *{box-sizing:border-box}.v4-top{display:flex;align-items:center;justify-content:space-between;gap:12px}.v4-top h2{margin:0;color:#d4f69b;letter-spacing:.1em}.v4-tabs{display:flex;flex-wrap:wrap;gap:7px;margin:18px 0}.v4-panel button,.v4-panel select,.v4-panel input,.v4-panel textarea{font:inherit;color:#e2efd7;background:#15271d;border:1px solid #4c7054;border-radius:5px;padding:9px 12px;max-width:100%}.v4-panel button{cursor:pointer}.v4-panel button:hover,.v4-panel button:focus-visible{border-color:#c5eb8b;background:#25432b}.v4-tabs button[aria-selected=true]{background:#44653a;color:#fff}.v4-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(245px,100%),1fr));gap:12px}.v4-card{border:1px solid #3b6047;border-radius:8px;background:#102119;padding:15px;min-width:0}.v4-card h3{color:#d0ef98;margin:0 0 10px}.v4-muted{color:#a2b5a5;font-size:12px}.v4-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}.v4-field{display:grid;gap:5px;margin:9px 0}.v4-field input,.v4-field textarea,.v4-field select{width:100%}.v4-entry{border-bottom:1px solid #38513d;padding:9px 0;display:flex;justify-content:space-between;gap:9px;align-items:center}.v4-entry span{overflow-wrap:anywhere}.v4-alert{border-left:3px solid #c9b96a;padding:8px 12px;background:#3a331c52}.v4-panel textarea{min-height:88px;resize:vertical}.v4-badge{color:#a6dd81;font-size:12px;letter-spacing:.08em}.v4-panel button:disabled{opacity:.5;cursor:not-allowed}@media(max-width:650px){.v4-overlay{padding:0}.v4-panel{max-height:100dvh;height:100%;border-radius:0}.v4-top h2{font-size:18px}}
+.v41-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(116px,1fr));gap:7px;margin:14px 0}.v41-stats button{display:flex;flex-direction:column;text-align:left;gap:3px}.v41-stats b{font-size:21px;color:#dbf6a6}.v41-stats small{font-size:11px;color:#b8cfb4}
+.v41-guide{border:1px solid #3b6047;background:#102019;border-radius:7px;margin:8px 0;padding:9px 12px}.v41-guide summary{cursor:pointer;display:grid;gap:4px;color:#d5f4a5}.v41-guide small{color:#abbcab;font-size:12px}.v41-guide p{margin:11px 0;line-height:1.6}
+.v41-scan{border:1px solid #477453;border-radius:50%;aspect-ratio:1;width:min(235px,90%);margin:12px auto;display:grid;place-items:center;position:relative;overflow:hidden;background:repeating-radial-gradient(circle,#183123 0px,#183123 1px,#0d1e14 2px,#0d1e14 34px)}.v41-scan:before,.v41-scan:after{content:"";position:absolute;background:#77aa7940}.v41-scan:before{width:1px;height:100%}.v41-scan:after{height:1px;width:100%}.v41-scan b{font-size:28px;color:#c5ff9b;text-shadow:0 0 13px #a7ff6f}.v41-scan-sweep{position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 0deg,transparent 292deg,#95ed8955 345deg,transparent 360deg);animation:v41-radar 7s linear infinite}@keyframes v41-radar{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.v41-scan-sweep{animation:none}}
+.v4-panel #v41-atlas-q,.v4-panel #v41-guide-q{flex:1;min-width:155px}.v4-panel .v41-guide button{font-size:12px}.v4-panel .v4-entry>button{flex-shrink:0}
+.v4-panel a{color:#baf29d;text-decoration:underline;text-underline-offset:3px}
+
+</style><script>
+/* АРХИУМ v4.0: entirely offline, additive tools; no external requests. */
+(()=>{
+ 'use strict';
+ const KEY='pda_zone_v4_field_center';
+ const defaults={callSign:'Странник',faction:'Одиночки',inventory:[],missions:[],marks:[],history:[],profileNotes:'',fx:'',warnings:true};
+ let data;
+ try{const x=JSON.parse(localStorage.getItem(KEY)||'null');data={...defaults,...(x&&typeof x==='object'&&!Array.isArray(x)?x:{})};}catch{data={...defaults};}
+ for(const field of ['inventory','missions','marks','history'])if(!Array.isArray(data[field]))data[field]=[];
+ const $=id=>document.getElementById(id);
+ const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const catalogue=()=>typeof DB!=='undefined'&&Array.isArray(DB)?DB:[];
+ const normalize=s=>String(s||'').toLocaleLowerCase('ru').replace(/ё/g,'е');
+ function persist(){try{localStorage.setItem(KEY,JSON.stringify(data));return true}catch{alert('Браузер не смог сохранить изменения. Экспортируйте резервную копию.');return false}}
+ let overlay,content,active='profile',previousFocus=null;
+ const tabs=[['profile','Профиль'],['inventory','Инвентарь'],['missions','Экспедиции'],['intel','Разведка'],['atlas','Атлас'],['relations','Связи'],['fieldguide','Полевой гид'],['scanner','Сканер'],['compare','Сравнение'],['backup','Архив']];
+ function open(tab='profile'){
+  active=tab;previousFocus=document.activeElement;
+  if(!overlay){overlay=document.createElement('div');overlay.className='v4-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Полевой центр АРХИУМ');overlay.innerHTML='<div class="v4-panel"><div class="v4-top"><div><div class="v4-badge">АРХИУМ / 4.0 · OFFLINE</div><h2>ПОЛЕВОЙ ЦЕНТР</h2></div><button id="v4-close" type="button">✕ ЗАКРЫТЬ</button></div><nav class="v4-tabs" aria-label="Разделы полевого центра"></nav><main id="v4-content"></main></div>';document.body.append(overlay);overlay.querySelector('#v4-close').onclick=close;overlay.addEventListener('click',e=>{if(e.target===overlay)close()});overlay.querySelector('.v4-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b){active=b.dataset.tab;render()}});content=overlay.querySelector('#v4-content');}
+  overlay.hidden=false;render();overlay.querySelector('#v4-close').focus();
+ }
+ function close(){if(overlay)overlay.hidden=true;previousFocus?.focus?.()}
+ document.addEventListener('keydown',e=>{if(!overlay||overlay.hidden)return;if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close()}else if(e.key==='Tab'){const focusables=[...overlay.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),summary')].filter(n=>n.getClientRects().length);if(!focusables.length)return;const first=focusables[0],last=focusables[focusables.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}},true);
+ function render(){overlay.querySelector('.v4-tabs').innerHTML=tabs.map(([id,label])=>`<button type="button" data-tab="${id}" aria-selected="${active===id}">${label}</button>`).join('');content.replaceChildren();({profile,inventory,missions,intel,atlas,relations,fieldguide,scanner,compare,backup}[active]||profile)();}
+ function html(s){content.innerHTML=s}
+ function profile(){html(`<div class="v4-grid"><section class="v4-card"><h3>УЧЁТНАЯ КАРТОЧКА</h3><label class="v4-field">Позывной<input id="v4-name" maxlength="40" value="${escape(data.callSign)}"></label><label class="v4-field">Группировка<select id="v4-faction">${['Одиночки','Долг','Свобода','Учёные','Чистое небо','Наёмники','Другая'].map(x=>`<option ${data.faction===x?'selected':''}>${x}</option>`).join('')}</select></label><label class="v4-field">Полевые записи<textarea id="v4-notes" maxlength="5000">${escape(data.profileNotes)}</textarea></label><button id="v4-save">СОХРАНИТЬ</button></section><section class="v4-card"><h3>СВОДКА ТЕРМИНАЛА</h3><p>Позывной: <b>${escape(data.callSign)}</b></p><p>Группировка: <b>${escape(data.faction)}</b></p><p>Предметов в рюкзаке: <b>${data.inventory.length}</b></p><p>Активных экспедиций: <b>${data.missions.filter(x=>!x.done).length}</b></p><p>Личных меток: <b>${data.marks.length}</b></p><p class="v4-muted">Данные хранятся только в этом браузере. Показатели терминала — игровая имитация.</p></section></div>`);$('v4-save').onclick=()=>{data.callSign=$('v4-name').value.trim()||'Странник';data.faction=$('v4-faction').value;data.profileNotes=$('v4-notes').value;persist();render()}}
+ function inventory(){const options=catalogue().filter(x=>['weapons','suits','artifacts','gear'].includes(x.cat));html(`<div class="v4-card"><h3>РЮКЗАК СТАЛКЕРА</h3><p class="v4-muted">Вещи из существующего архива. Вес и свойства не рассчитываются без подтверждённых численных характеристик.</p><div class="v4-row"><input id="v4-item-search" placeholder="Найти предмет в архиве" aria-label="Поиск предмета"><select id="v4-item" aria-label="Выберите предмет"></select><button id="v4-add-item">+ ДОБАВИТЬ</button></div><div id="v4-items"></div></div>`);let found=options;const select=$('v4-item');function populate(){const s=normalize($('v4-item-search').value);found=options.filter(x=>normalize(x.name).includes(s)).slice(0,150);select.innerHTML=found.map(x=>`<option value="${escape(x.id)}">${escape(x.name)} · ${escape(x.cat)}</option>`).join('')}function rows(){$('v4-items').innerHTML=data.inventory.length?data.inventory.map((x,i)=>`<div class="v4-entry"><span>${escape(x.name)} <small class="v4-muted">${escape(x.cat)}</small></span><button data-remove-item="${i}">УБРАТЬ</button></div>`).join(''):'<p class="v4-muted">Рюкзак пуст.</p>'}populate();rows();$('v4-item-search').oninput=populate;$('v4-add-item').onclick=()=>{const x=found.find(x=>String(x.id)===select.value);if(x){data.inventory.push({id:x.id,name:x.name,cat:x.cat});persist();rows()}};$('v4-items').onclick=e=>{const b=e.target.closest('[data-remove-item]');if(b){data.inventory.splice(Number(b.dataset.removeItem),1);persist();rows()}}}
+ function missions(){html(`<div class="v4-grid"><section class="v4-card"><h3>НОВАЯ ЭКСПЕДИЦИЯ</h3><label class="v4-field">Задача<input id="v4-task" maxlength="120" placeholder="Например: исследовать Кордон"></label><label class="v4-field">Локация<input id="v4-place" maxlength="100" list="v4-places" placeholder="Укажите район"></label><datalist id="v4-places">${catalogue().filter(x=>x.cat==='locations').slice(0,180).map(x=>`<option value="${escape(x.name)}"></option>`).join('')}</datalist><label class="v4-field">Заметка<textarea id="v4-task-note" maxlength="2000" placeholder="Снаряжение, ориентиры, цель"></textarea></label><button id="v4-add-task">+ ЗАПИСАТЬ</button></section><section class="v4-card"><h3>ЖУРНАЛ ЭКСПЕДИЦИЙ</h3><div id="v4-task-list"></div></section></div>`);function rows(){$('v4-task-list').innerHTML=data.missions.length?data.missions.map((x,i)=>`<div class="v4-entry"><div><label><input type="checkbox" data-task-done="${i}" ${x.done?'checked':''}> <b>${escape(x.title)}</b></label><div class="v4-muted">${escape(x.place)} · ${escape(x.note)}</div></div><button data-task-delete="${i}">✕</button></div>`).join(''):'<p class="v4-muted">Пока нет экспедиций.</p>'}rows();$('v4-add-task').onclick=()=>{const title=$('v4-task').value.trim();if(!title)return;data.missions.unshift({title,place:$('v4-place').value.trim(),note:$('v4-task-note').value.trim(),done:false});persist();render()};$('v4-task-list').onchange=e=>{if(e.target.matches('[data-task-done]')){data.missions[Number(e.target.dataset.taskDone)].done=e.target.checked;persist()}};$('v4-task-list').onclick=e=>{const b=e.target.closest('[data-task-delete]');if(b){data.missions.splice(Number(b.dataset.taskDelete),1);persist();rows()}}}
+ function intel(){const cats=[...new Set(catalogue().map(x=>x.cat))];html(`<div class="v4-grid"><section class="v4-card"><h3>РАЗВЕДКА ПО АРХИВУ</h3><p class="v4-muted">Поиск по уже проверенным записям трилогии, без вымышленных характеристик.</p><div class="v4-row"><input id="v4-query" placeholder="Локация, мутант, артефакт…"><select id="v4-category"><option value="">ВСЕ РАЗДЕЛЫ</option>${cats.map(x=>`<option value="${escape(x)}">${escape(x)}</option>`).join('')}</select></div><div id="v4-results"></div></section><section class="v4-card"><h3>ЛИЧНЫЕ МЕТКИ</h3><label class="v4-field">Место<input id="v4-mark-place" maxlength="120" placeholder="Название локации"></label><label class="v4-field">Что запомнить<input id="v4-mark-text" maxlength="300" placeholder="Тайник, опасность, маршрут"></label><button id="v4-add-mark">+ СОХРАНИТЬ МЕТКУ</button><div id="v4-marks"></div></section></div>`);function results(){const q=normalize($('v4-query').value.trim()),cat=$('v4-category').value;const hits=catalogue().filter(x=>(!cat||x.cat===cat)&&(!q||normalize([x.name,x.short,x.detail,...(x.tags||[])].join(' ')).includes(q))).slice(0,35);$('v4-results').innerHTML=hits.map(x=>`<div class="v4-entry"><span><b>${escape(x.name)}</b><br><small class="v4-muted">${escape(x.cat)} · ${escape(String(x.short||'').slice(0,110))}</small></span><button data-jump="${escape(x.id)}">ОТКРЫТЬ</button></div>`).join('')||'<p>Нет совпадений.</p>'}function marks(){$('v4-marks').innerHTML=data.marks.map((x,i)=>`<div class="v4-entry"><span><b>${escape(x.place)}</b><br>${escape(x.text)}</span><button data-mark-remove="${i}">✕</button></div>`).join('')}results();marks();$('v4-query').oninput=results;$('v4-category').onchange=results;$('v4-add-mark').onclick=()=>{const place=$('v4-mark-place').value.trim(),text=$('v4-mark-text').value.trim();if(!place||!text)return;data.marks.unshift({place,text});persist();render()};$('v4-marks').onclick=e=>{const b=e.target.closest('[data-mark-remove]');if(b){data.marks.splice(Number(b.dataset.markRemove),1);persist();marks()}};$('v4-results').onclick=e=>{const b=e.target.closest('[data-jump]');if(!b)return;const x=catalogue().find(x=>String(x.id)===b.dataset.jump);if(!x)return;close();if(typeof openSection==='function'&&typeof selectEntry==='function'){openSection(x.cat,{game:'all'});selectEntry(x.id,true);data.history.unshift({id:x.id,name:x.name,time:Date.now()});data.history=data.history.slice(0,30);persist()}}}
+ function compare(){const rows=catalogue().filter(x=>['weapons','suits','artifacts'].includes(x.cat));html(`<div class="v4-card"><h3>СРАВНЕНИЕ ДОСЬЕ</h3><p class="v4-muted">Сопоставление подтверждённых текстовых данных. Численные показатели не выдумываются.</p><div class="v4-row"><select id="v4-a"></select><select id="v4-b"></select><button id="v4-compare">СРАВНИТЬ</button></div><div id="v4-compared" class="v4-grid"></div></div>`);const opts=rows.map(x=>`<option value="${escape(x.id)}">${escape(x.name)} (${escape(x.cat)})</option>`).join('');$('v4-a').innerHTML=opts;$('v4-b').innerHTML=opts;$('v4-b').selectedIndex=Math.min(1,rows.length-1);$('v4-compare').onclick=()=>{$('v4-compared').innerHTML=[$('v4-a').value,$('v4-b').value].map(id=>{const x=rows.find(r=>String(r.id)===id);return x?`<article class="v4-card"><h3>${escape(x.name)}</h3><div class="v4-badge">${escape(x.cat)} · ${escape(x.games||'')}</div><p>${escape(x.short||'Нет краткого описания')}</p><p>${escape(String(x.detail||'').slice(0,1100))}</p></article>`:''}).join('')};$('v4-compare').click()}
+ function backup(){html(`<div class="v4-grid"><section class="v4-card"><h3>РЕЗЕРВНАЯ КОПИЯ</h3><p>Экспортирует личный профиль, снаряжение, экспедиции и метки.</p><button id="v4-export">↓ СКАЧАТЬ JSON</button><label class="v4-field">Восстановить из файла<input id="v4-import" type="file" accept="application/json,.json"></label><p class="v4-alert">Импорт заменит личные данные Полевого центра. Основной архив ПДА не затрагивается.</p></section><section class="v4-card"><h3>СИСТЕМНАЯ СПРАВКА</h3><p>Версия: АРХИУМ 4.0</p><p>Режим: автономный</p><p>База: ${catalogue().length} материалов</p><p class="v4-muted">Функции связи, сканирования и выбросов — художественная симуляция, не реальные измерительные приборы.</p></section></div>`);$('v4-export').onclick=()=>{const blob=new Blob([JSON.stringify({format:'PDA_ZONE_V4',version:1,data},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='PDA_ZONE_v4_backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};$('v4-import').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>1e6)throw Error('Файл слишком большой');const x=JSON.parse(await file.text());if(x.format!=='PDA_ZONE_V4'||!x.data||!Array.isArray(x.data.inventory)||!Array.isArray(x.data.missions)||!Array.isArray(x.data.marks))throw Error('Неверный формат');if(!confirm('Заменить личные данные данными из резервной копии?'))return;data={...defaults,...x.data};persist();render();alert('Данные восстановлены')}catch(err){alert('Не удалось импортировать: '+err.message)}}}
+/* АРХИУМ 4.1 — author-written, offline knowledge expansion. */
+const V41_GUIDES=[
+ ['Маршрут','Подготовка экспедиции','Проверка маршрута до выхода',[
+  'Определите цель вылазки: сюжетное задание, исследование аномального поля, поиск предмета или переход в соседний район. Одну цель удобно считать главной, остальные — дополнительными.',
+  'Проверьте точку старта, предполагаемое направление и условия возвращения. Нанесите важные ориентиры в личные метки; карта ПДА является схемой, а не точной геодезической картой.',
+  'Укажите в журнале необходимое снаряжение и собственные заметки. Отметки в этом терминале не меняют игровое сохранение.'
+ ]],
+ ['Маршрут','План возвращения','Почему выход из района стоит продумать заранее',[
+  'Каждую вылазку полезно планировать в обе стороны: изучение места и возврат из него — разные задачи.',
+  'В журнале фиксируйте пути отступления, ближайшие известные безопасные места и условия, при которых придётся прервать поиск.',
+  'Если район неизвестен, разделите маршрут на короткие отрезки с понятными ориентирами.'
+ ]],
+ ['Маршрут','Работа с переходами','Сравнивайте маршрут по конкретной игре',[
+  'Набор доступных локаций и переходов различается между «Тенью Чернобыля», «Чистым небом» и «Зовом Припяти».',
+  'Сначала выберите нужную игру на карте. Не переносите автоматически маршрут из одной части трилогии в другую.',
+  'Перед планированием сверяйте карточку локации и подробности текущего задания.'
+ ]],
+ ['Маршрут','Ориентиры и личные метки','Как вести собственную картографическую запись',[
+  'Пишите не просто название места, а ориентир: постройка, переправа, объект или сторона от основной дороги.',
+  'Уточните, что именно важно: возможный тайник, NPC, переход, аномалия или интересная сюжетная точка.',
+  'Не используйте схематические координаты карты как реальные GPS-координаты.'
+ ]],
+ ['Аномалии','Первичное обследование поля','Осторожный подход к неизвестной аномалии',[
+  'Начните с наблюдения за визуальными и звуковыми признаками, затем сверяйтесь с досье конкретного типа аномалии.',
+  'Детекторы, болты и защитное снаряжение работают по-разному в частях серии; учитывайте механику выбранной игры.',
+  'Отмечайте опасные участки в полевом журнале. Наш сканер — только симуляция терминала, а не инструмент измерения.'
+ ]],
+ ['Аномалии','Сравнение полей','Почему нельзя переносить свойства между играми',[
+  'Одна и та же аномалия может иметь разные места появления, визуальные эффекты и связанные с ней находки в ТЧ, ЧН и ЗП.',
+  'В карточках аномалий ПДА есть разбивка по трём играм: используйте её как стартовую точку.',
+  'Сверяйте конкретное поле, а не только название типа аномалии.'
+ ]],
+ ['Аномалии','Выбросы и предупреждения','Различайте сюжетную механику и интерфейсную имитацию',[
+  'Выбросы — элемент мира S.T.A.L.K.E.R., но условия их появления и последствия зависят от игры и сценария.',
+  'Атмосферные предупреждения в этом автономном ПДА не получают данных из запущенной игры.',
+  'Системный сигнал ПДА не может заменить внутриигровое уведомление или проверку текущей обстановки.'
+ ]],
+ ['Аномалии','Пси-опасность','Как разбирать сведения об особых угрозах',[
+  'Ищите связь между местом, конкретным источником угрозы и доступной защитой в соответствующей части игры.',
+  'Не смешивайте пси-эффекты с радиацией, электрическими и термическими аномалиями: это разные игровые угрозы.',
+  'Отмечайте в журнале, какая версия игры и какое задание относятся к найденной информации.'
+ ]],
+ ['Артефакты','Проверка свойств','Не опирайтесь на одно название артефакта',[
+  'У артефактов могут отличаться эффекты, побочные свойства и условия получения в разных частях трилогии.',
+  'Сначала откройте досье артефакта и уточните игру. Затем сравните полезные и отрицательные свойства с текущим комплектом защиты.',
+  'Если в архиве нет достоверных численных значений, ПДА не будет подменять их придуманными цифрами.'
+ ]],
+ ['Артефакты','Поиск и фиксация находок','Связывайте аномалию, локацию и артефакт',[
+  'В разделе «Связи» выберите аномалию и конкретную игру, чтобы увидеть уже записанные места и связанные с типом артефакты.',
+  'Перейдите в соответствующее досье и сохраните личную заметку о том, где вы обнаружили предмет.',
+  'Список связанных артефактов не означает гарантированного появления каждого предмета при любой вылазке.'
+ ]],
+ ['Артефакты','Оценка добычи','Инвентаризация после вылазки',[
+  'Разделите находки на те, что нужны для задания, для собственного набора и для продажи в игре.',
+  'При сравнении цен учитывайте, что условия торговли и доступность вещей различаются между играми.',
+  'В этом ПДА инвентарь — личная запись пользователя, не синхронизация с игровым персонажем.'
+ ]],
+ ['Снаряжение','Подбор защиты','Читайте профиль угроз, а не только название костюма',[
+  'Сравнивайте бронезащиту, стойкость к аномальным воздействиям и особенности костюма с тем, куда собираетесь.',
+  'Один комплект не обязательно одинаково удобен для перестрелки, исследования аномального поля и долгого перехода.',
+  'Характеристики в досье могут быть качественными: конкретные числа указывайте только по источнику для нужной версии игры.'
+ ]],
+ ['Снаряжение','Подбор оружия','Сравнение под задачу',[
+  'При выборе оружия сопоставляйте назначение, доступные боеприпасы и дистанции предполагаемых столкновений.',
+  'Уточняйте игровую часть: один и тот же образец может отличаться настройками, модификациями и доступностью.',
+  'Раздел «Сравнение» показывает записи архива рядом, не заменяя внутриигровые численные параметры.'
+ ]],
+ ['Снаряжение','Боеприпасы и расходники','Контроль перед переходом',[
+  'Составьте минимальный список требуемых боеприпасов и расходных предметов для конкретной цели.',
+  'Сопоставляйте расход с предполагаемой длительностью маршрута и возможностью пополнить запасы по пути.',
+  'В журнале экспедиции удобно зафиксировать, чего не хватало в прошлый раз.'
+ ]],
+ ['Снаряжение','Детекторы','Поиск артефактов в разных играх',[
+  'Способы обнаружения артефактов и доступные детекторы менялись в трилогии.',
+  'Проверяйте карточку конкретного прибора и выбранную игру; не переносите один алгоритм поиска на все части.',
+  'Имитатор сканирования в ПДА использует локальный справочник и не обнаруживает объекты в игре.'
+ ]],
+ ['Группировки','Кто контролирует район','Читайте досье в контексте времени игры',[
+  'Группировки, их базы, отношения и влияние на локации могут заметно отличаться между ТЧ, ЧН и ЗП.',
+  'Сначала выберите нужную игру, затем изучите карточки группировки и локации.',
+  'Историю конфликтов лучше проверять по сюжетному периоду; универсальная карта союзов может вводить в заблуждение.'
+ ]],
+ ['Группировки','Чистое небо: войны группировок','Особенность приквела',[
+  '«Чистое небо» — приквел к «Тени Чернобыля». В нём отдельную роль играет борьба группировок за контроль территорий.',
+  'При планировании маршрута учитывайте, что обстановка на важных направлениях может меняться по мере событий.',
+  'Это описание механики игры, а не информация о реальном многопользовательском конфликте.'
+ ]],
+ ['Группировки','Контакты и торговля','Разделение персонажей по ролям',[
+  'Составляйте личные заметки о торговцах, техниках, проводниках и других значимых персонажах.',
+  'Перед переходом к NPC уточняйте локацию и конкретную игру, чтобы избежать ошибочной привязки.',
+  'Досье персонажа содержит архивные сведения; живое местонахождение в игровой сессии этот автономный ПДА не отслеживает.'
+ ]],
+ ['Задания','Журнал и контроль целей','Отдельная запись на каждую экспедицию',[
+  'Формулируйте проверяемую цель: посетить место, найти предмет, поговорить с персонажем или исследовать территорию.',
+  'Привязывайте заметки к локациям. По завершении отмечайте выполненную задачу; она останется в журнале для истории.',
+  'Эти отметки не изменяют сюжетные флаги или задания в установленной игре.'
+ ]],
+ ['Задания','Порядок изучения сведений','Как не спутать подсказку со спойлером',[
+  'Начните с краткого описания и общих условий прохождения. Только затем открывайте подробные документы по сюжету.',
+  'Сверяйте название игры и идентичность персонажей: повторяющиеся имена и места не всегда подразумевают одну сюжетную роль.',
