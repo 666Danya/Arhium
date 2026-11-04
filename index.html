@@ -25,7 +25,14 @@
       }
     });
     await Promise.all(workers);
-    const html=chunks.join('');
+    let html=chunks.join('');
+    // ARCHIUM photo atlas: staged in this branch; the published beta is unchanged.
+    const atlasLink='<a href="./locations.html" class="archium-photo-atlas-link" aria-label="Открыть фотоатлас 26 локаций">⌖ ФОТОАТЛАС · 26 ЛОКАЦИЙ ↗</a>';
+    const atlasCSS='<style>.archium-photo-atlas-link{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;margin:8px 0 5px;padding:8px 15px;border:1px solid #b69b58;border-radius:8px;background:linear-gradient(120deg,#1d3022,#101e18);color:#f5d58e;font:700 12px system-ui,sans-serif;letter-spacing:.08em;text-decoration:none;text-align:center;box-shadow:inset 0 1px 0 #ffffff16}.archium-photo-atlas-link:hover,.archium-photo-atlas-link:focus-visible{background:#2b4430;border-color:#ecd181}.pda-landing-content>.archium-photo-atlas-link{max-width:100%}.pda-catalog-tools>.archium-photo-atlas-link{width:auto;margin:0;min-height:44px}@media(max-width:520px){.pda-catalog-tools>.archium-photo-atlas-link{width:100%;margin-top:5px}}</style>';
+    html=html.replace('</head>',atlasCSS+'</head>');
+    html=html.replace(/(<button id="pda-open-catalog"[\s\S]*?<\/button>)/i,'$1'+atlasLink);
+    html=html.replace(/(<button type="button" id="pda-archive"[\s\S]*?<\/button>)/i,'$1'+atlasLink);
+
     if(!/^<!doctype html>/i.test(html)||!/<\/html>\s*$/.test(html))throw Error('Сборка неполная');
     document.open();document.write(html);document.close();
   }catch(e){
